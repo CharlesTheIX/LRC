@@ -46,9 +46,9 @@ pub const LRC = struct {
             .reader = props.reader,
             .writer = props.writer,
             .allocator = props.allocator,
-            .ui = UI.init(.{}),
             .config = config,
             .database = database,
+            .ui = UI.init(.{ .allocator = props.allocator }),
             .feeding = Feeding.init(.{ .io = props.io, .env_map = props.env_map }),
         };
     }
