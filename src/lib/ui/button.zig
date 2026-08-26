@@ -54,12 +54,17 @@ pub const Button = struct {
             .bg_color = props.bg_color,
             .font_size = props.font_size,
             .txt_color = props.txt_color,
-            .callback = props.callback,
             .allocator = props.allocator,
+            .callback = props.callback,
         };
     }
 
+    fn onClick(self: *Button) void {
+        if (self.callback) |cb| cb.*();
+    }
+
     pub fn update(self: *Button) void {
-        _ = self;
+        const mouse_pos = rl.getMousePosition();
+        if (rl.isMouseButtonPressed(rl.MouseButton.left) and rl.checkCollisionPointRec(mouse_pos, self.rect)) self.onClick();
     }
 };

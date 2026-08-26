@@ -8,6 +8,11 @@ const Props = struct {
     allocator: *std.mem.Allocator,
 };
 
+fn buttonCallback() void {
+    std.debug.print("Button clicked!\n", .{});
+    rl.closeWindow();
+}
+
 pub const UI = struct {
     timer: Timer,
     button: Button,
@@ -31,7 +36,7 @@ pub const UI = struct {
             .label = "Click Me",
             .bg_color = rl.Color.blue,
             .txt_color = rl.Color.white,
-            .callback = null,
+            .callback = buttonCallback,
             .allocator = props.allocator,
             .position = rl.Vector2.init(10, 50),
         });
