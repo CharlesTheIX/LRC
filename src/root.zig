@@ -1,37 +1,59 @@
 const std = @import("std");
-const FeedingTime = @import("lib/data/feeding-time.zig").FeedingTime;
+const UI = @import("lib/ui/root.zig").UI;
+const Config = @import("lib/config.zig").Config;
+const Database = @import("lib/database.zig").Database;
+const DateTime = @import("lib/date-time.zig").DateTime;
+const Feeding = @import("lib/data/feeding.zig").Feeding;
 
-const LrcProps = struct {
+const Props = struct {
     io: *std.Io,
     reader: *std.Io.Reader,
     writer: *std.Io.Writer,
-    allocator: std.mem.Allocator,
+    allocator: *std.mem.Allocator,
+    env_map: *std.process.Environ.Map,
     args_it: *std.process.Args.Iterator,
 };
 
 pub const LRC = struct {
+    /// Application core properties
     io: *std.Io,
     reader: *std.Io.Reader,
     writer: *std.Io.Writer,
-    allocator: std.mem.Allocator,
-
-    pub fn init(props: LrcProps) LRC {
-        var args_it = props.args_it.*;
-        while (args_it.next()) |arg| std.debug.print("arg: {s}\n", .{arg});
-        return LRC{ .io = props.io, .reader = props.reader, .writer = props.writer, .allocator = props.allocator };
-    }
+    allocator: *std.mem.Allocator,
+    env_map: *std.process.Environ.Map,
+    // Application components
+    ui: UI,
+    config: Config,
+    feeding: Feeding,
+    database: Database,
 
     pub fn deinit(self: *LRC) void {
-        // Cleanup resources if needed
+        self.ui.deinit();
+        self.config.deinit();
+        self.feeding.deinit();
+        self.database.deinit();
         self.writer.flush() catch {};
+    }
+
+    pub fn init(props: Props) LRC {
+        var args_it = props.args_it.*;
+        while (args_it.next()) |arg| std.debug.print("arg: {s}\n", .{arg});
+        const database = Database.init(.{ .env_map = props.env_map, .io = props.io });
+        const config = Config.init(.{ .env_map = props.env_map, .io = props.io });
+        return LRC{
+            .io = props.io,
+            .env_map = props.env_map,
+            .reader = props.reader,
+            .writer = props.writer,
+            .allocator = props.allocator,
+            .ui = UI.init(.{}),
+            .config = config,
+            .database = database,
+            .feeding = Feeding.init(.{ .io = props.io, .env_map = props.env_map }),
+        };
     }
 
     pub fn run(self: *LRC) void {
-        self.writer.writeAll("Running LRC...\n") catch {};
-        self.writer.flush() catch {};
-
-        var feeding_time = FeedingTime.init();
-        defer feeding_time.deinit();
-        feeding_time.readAll(self.io);
+        self.ui.run();
     }
 };

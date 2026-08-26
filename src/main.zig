@@ -4,8 +4,9 @@ const lrc = @import("lrc");
 pub fn main(init: std.process.Init) void {
     // Initialize the I/O system
     var io = init.io;
+    const env_map = init.environ_map;
     var args_it = init.minimal.args.iterate();
-    const arena: std.mem.Allocator = init.arena.allocator();
+    var arena: std.mem.Allocator = init.arena.allocator();
 
     // Set up stdout writer
     var stdout_buffer: [1024]u8 = undefined;
@@ -20,8 +21,9 @@ pub fn main(init: std.process.Init) void {
     // Init and run the application
     var app = lrc.LRC.init(.{
         .io = &io,
-        .allocator = arena,
+        .env_map = env_map,
         .args_it = &args_it,
+        .allocator = &arena,
         .reader = stdin_reader,
         .writer = stdout_writer,
     });
