@@ -1,6 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const Timer = @import("../timer.zig").Timer;
+const Button = @import("./button.zig").Button;
 const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
 
 const Props = struct {
@@ -9,6 +10,7 @@ const Props = struct {
 
 pub const UI = struct {
     timer: Timer,
+    button: Button,
     allocator: *std.mem.Allocator,
 
     pub fn deinit(self: *UI) void {
@@ -17,7 +19,16 @@ pub const UI = struct {
 
     pub fn init(props: Props) UI {
         const timer = Timer.init(.{ .timer_type = .Continuous, .allocator = props.allocator, .target_time = null });
-        return UI{ .allocator = props.allocator, .timer = timer };
+        const button = Button.init(.{
+            .font_size = 20,
+            .callback = null,
+            .label = "Click Me",
+            .bg_color = rl.Color.blue,
+            .txt_color = rl.Color.white,
+            .allocator = props.allocator,
+            .position = rl.Vector2.init(10, 50),
+        });
+        return UI{ .allocator = props.allocator, .timer = timer, .button = button };
     }
 
     pub fn run(self: *UI) void {
@@ -40,24 +51,13 @@ pub const UI = struct {
         rl.beginDrawing();
         rl.clearBackground(rl.Color.blank);
         rl.drawText("Hello, LRC!", 10, 10, 20, rl.Color.white);
-
-        // const clock = std.fmt.allocPrint(self.allocator.*, "Time: {d}", .{rl.getTime()}) catch "Failed to allocate clock string";
-        // defer self.allocator.free(clock);
-        // const clock_z = sliceToZSlice(self.allocator, clock) catch "Failed to convert clock string to Z slice";
-        // defer self.allocator.free(clock_z);
-        // rl.drawText(clock_z, 10, 70, 20, rl.Color.white);
-
-        // const frame_time = std.fmt.allocPrint(self.allocator.*, "Frame Time: {d}", .{rl.getFrameTime()}) catch "Failed to allocate frame time string";
-        // defer self.allocator.free(frame_time);
-        // const frame_time_z = sliceToZSlice(self.allocator, frame_time) catch "Failed to convert frame time string to Z slice";
-        // defer self.allocator.free(frame_time_z);
-        // rl.drawText(frame_time_z, 10, 100, 20, rl.Color.white);
-        // self.timer.draw(position: Vector2, font_size: i32, color: Color, format: TimerFormat)
+        self.button.draw();
         self.timer.draw(.init(10, 130), 20, rl.Color.white, .MinutesSeconds);
         rl.endDrawing();
     }
 
     pub fn update(self: *UI) void {
         self.timer.update(rl.getFrameTime());
+        self.button.update();
     }
 };
