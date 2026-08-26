@@ -18,20 +18,6 @@ pub const UI = struct {
     }
 
     pub fn init(props: Props) UI {
-        const timer = Timer.init(.{ .timer_type = .Continuous, .allocator = props.allocator, .target_time = null });
-        const button = Button.init(.{
-            .font_size = 20,
-            .callback = null,
-            .label = "Click Me",
-            .bg_color = rl.Color.blue,
-            .txt_color = rl.Color.white,
-            .allocator = props.allocator,
-            .position = rl.Vector2.init(10, 50),
-        });
-        return UI{ .allocator = props.allocator, .timer = timer, .button = button };
-    }
-
-    pub fn run(self: *UI) void {
         const config_flags = rl.ConfigFlags{ .vsync_hint = true, .window_resizable = true, .window_transparent = true };
         rl.setTargetFPS(60);
         rl.initAudioDevice();
@@ -39,12 +25,26 @@ pub const UI = struct {
         rl.setConfigFlags(config_flags);
         rl.initWindow(800, 600, "LRC");
         rl.maximizeWindow();
-        defer rl.closeWindow();
+        const timer = Timer.init(.{ .timer_type = .Continuous, .allocator = props.allocator, .target_time = null });
+        const button = Button.init(.{
+            .font_size = 20,
+            .label = "Click Me",
+            .bg_color = rl.Color.blue,
+            .txt_color = rl.Color.white,
+            .callback = null,
+            .allocator = props.allocator,
+            .position = rl.Vector2.init(10, 50),
+        });
+        return UI{ .allocator = props.allocator, .timer = timer, .button = button };
+    }
+
+    pub fn run(self: *UI) void {
         self.timer.start();
         while (!rl.windowShouldClose()) {
             self.update();
             self.draw();
         }
+        rl.closeWindow();
     }
 
     pub fn draw(self: *UI) void {
