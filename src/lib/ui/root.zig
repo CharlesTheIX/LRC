@@ -15,6 +15,7 @@ fn buttonCallback() void {
 
 pub const UI = struct {
     timer: Timer,
+    font: rl.Font,
     button: Button,
     allocator: *std.mem.Allocator,
 
@@ -28,19 +29,21 @@ pub const UI = struct {
         rl.initAudioDevice();
         defer rl.closeAudioDevice();
         rl.setConfigFlags(config_flags);
+        const font = rl.loadFont("assets/fonts/JetBrains.ttf") catch @panic("Failed to load font");
         rl.initWindow(800, 600, "LRC");
         rl.maximizeWindow();
         const timer = Timer.init(.{ .timer_type = .Continuous, .allocator = props.allocator, .target_time = null });
         const button = Button.init(.{
+            .font = font,
             .font_size = 20,
             .label = "Click Me",
             .bg_color = rl.Color.blue,
             .txt_color = rl.Color.white,
-            .callback = buttonCallback,
             .allocator = props.allocator,
+            .callback = buttonCallback,
             .position = rl.Vector2.init(10, 50),
         });
-        return UI{ .allocator = props.allocator, .timer = timer, .button = button };
+        return UI{ .allocator = props.allocator, .timer = timer, .button = button, .font = font };
     }
 
     pub fn run(self: *UI) void {
@@ -55,7 +58,8 @@ pub const UI = struct {
     pub fn draw(self: *UI) void {
         rl.beginDrawing();
         rl.clearBackground(rl.Color.blank);
-        rl.drawText("Hello, LRC!", 10, 10, 20, rl.Color.white);
+        // rl.drawText("Hello, LRC!", 10, 10, 20, rl.Color.white);
+        rl.drawTextEx(self.font, "Hello, LRC!", .init(10, 10), 20, 3, rl.Color.white);
         self.button.draw();
         self.timer.draw(.init(10, 130), 20, rl.Color.white, .MinutesSeconds);
         rl.endDrawing();

@@ -3,6 +3,7 @@ const rl = @import("raylib");
 const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
 
 const Props = struct {
+    font: rl.Font,
     font_size: i32,
     label: []const u8,
     bg_color: rl.Color,
@@ -13,6 +14,7 @@ const Props = struct {
 };
 
 pub const Button = struct {
+    font: rl.Font,
     font_size: i32,
     label: []const u8,
     bg_color: rl.Color,
@@ -35,21 +37,21 @@ pub const Button = struct {
         defer self.allocator.free(label_z);
         const text_width = rl.measureText(label_z, self.font_size);
         std.debug.print("Text width: {d}\n", .{text_width});
-
-        rl.drawText(label_z, @intFromFloat(self.rect.x + self.padding.x), @intFromFloat(self.rect.y + self.padding.y), self.font_size, self.txt_color);
+        rl.drawTextEx(self.font, label_z, .init(self.rect.x + self.padding.x, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), 3, self.txt_color);
     }
 
     pub fn init(props: Props) Button {
         const label_z = sliceToZSlice(props.allocator, props.label) catch "Failed to convert label string to Z slice";
         defer props.allocator.free(label_z);
         const padding = rl.Vector2.init(10, 5);
-        const text_width = rl.measureText(label_z, props.font_size);
+        const text_width = rl.measureTextEx(props.font, label_z, @as(f32, @floatFromInt(props.font_size)), 3);
         std.debug.print("Text width: {d}\n", .{text_width});
         const label_width = @as(f32, @floatFromInt(rl.measureText(label_z, props.font_size)));
         const rect = rl.Rectangle.init(props.position.x, props.position.y, label_width + (2 * padding.x), @as(f32, @floatFromInt(props.font_size)) + (2 * padding.y));
         return Button{
             .rect = rect,
             .padding = padding,
+            .font = props.font,
             .label = props.label,
             .bg_color = props.bg_color,
             .font_size = props.font_size,
@@ -60,7 +62,7 @@ pub const Button = struct {
     }
 
     fn onClick(self: *Button) void {
-        if (self.callback) |cb| cb.*();
+        if (self.callback) |cb| cb();
     }
 
     pub fn update(self: *Button) void {
