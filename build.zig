@@ -6,15 +6,27 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const raylib_dep = b.dependency("raylib_zig", .{ .target = target, .optimize = optimize });
 
-    // Modules and executables
+    // Modules
     const raylib = raylib_dep.module("raylib");
-    const mod = b.addModule("lrc", .{
+    const app_mod = b.addModule("app", .{
+        .imports = &.{},
         .target = target,
         .root_source_file = b.path("src/root.zig"),
+    });
+    const lrc_mod = b.addModule("lrc", .{
+        .target = target,
+        .root_source_file = b.path("src/lrc/root.zig"),
         .imports = &.{
             .{ .name = "raylib", .module = raylib },
         },
     });
+    const udp_mod = b.addModule("udp", .{
+        .imports = &.{},
+        .target = target,
+        .root_source_file = b.path("src/udp/root.zig"),
+    });
+
+    // Create executable
     const exe = b.addExecutable(.{
         .name = "lrc",
         .root_module = b.createModule(.{
@@ -22,7 +34,9 @@ pub fn build(b: *std.Build) void {
             .optimize = optimize,
             .root_source_file = b.path("src/main.zig"),
             .imports = &.{
-                .{ .name = "lrc", .module = mod },
+                .{ .name = "app", .module = app_mod },
+                .{ .name = "lrc", .module = lrc_mod },
+                .{ .name = "udp", .module = udp_mod },
                 .{ .name = "raylib", .module = raylib },
             },
         }),

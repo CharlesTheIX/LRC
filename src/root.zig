@@ -1,59 +1,29 @@
 const std = @import("std");
-const UI = @import("lib/ui/root.zig").UI;
-const Config = @import("lib/config.zig").Config;
-const Database = @import("lib/database.zig").Database;
-const DateTime = @import("lib/date-time.zig").DateTime;
-const Feeding = @import("lib/data/feeding.zig").Feeding;
 
-const Props = struct {
-    io: *std.Io,
-    reader: *std.Io.Reader,
-    writer: *std.Io.Writer,
-    allocator: *std.mem.Allocator,
-    env_map: *std.process.Environ.Map,
-    args_it: *std.process.Args.Iterator,
-};
+pub const Command = enum {
+    LRC,
+    UDP_SERVER,
+    Invalid,
 
-pub const LRC = struct {
-    /// Application core properties
-    io: *std.Io,
-    reader: *std.Io.Reader,
-    writer: *std.Io.Writer,
-    allocator: *std.mem.Allocator,
-    env_map: *std.process.Environ.Map,
-    // Application components
-    ui: UI,
-    config: Config,
-    feeding: Feeding,
-    database: Database,
-
-    pub fn deinit(self: *LRC) void {
-        self.ui.deinit();
-        self.config.deinit();
-        self.feeding.deinit();
-        self.database.deinit();
-        self.writer.flush() catch {};
+    pub fn fromSlice(slice: []const u8) Command {
+        if (std.mem.eql(u8, slice, "lrc")) return .LRC;
+        if (std.mem.eql(u8, slice, "udp-server")) return .UDP_SERVER;
+        return .Invalid;
     }
 
-    pub fn init(props: Props) LRC {
-        var args_it = props.args_it.*;
-        while (args_it.next()) |arg| std.debug.print("arg: {s}\n", .{arg});
-        const database = Database.init(.{ .env_map = props.env_map, .io = props.io });
-        const config = Config.init(.{ .env_map = props.env_map, .io = props.io });
-        return LRC{
-            .io = props.io,
-            .env_map = props.env_map,
-            .reader = props.reader,
-            .writer = props.writer,
-            .allocator = props.allocator,
-            .config = config,
-            .database = database,
-            .ui = UI.init(.{ .allocator = props.allocator }),
-            .feeding = Feeding.init(.{ .io = props.io, .env_map = props.env_map }),
-        };
-    }
-
-    pub fn run(self: *LRC) void {
-        self.ui.run();
+    pub fn toSlice(self: Command) []const u8 {
+        switch (self) {
+            .LRC => return "lrc",
+            .UDP_SERVER => return "udp-server",
+            .Invalid => return "invalid",
+        }
     }
 };
+
+pub fn showHelp(writer: *std.Io.Writer) void {
+    writer.print("Usage: lrc <command>\n", .{}) catch {};
+    writer.print("Commands:\n", .{}) catch {};
+    writer.print("  lrc          Run the LRC application\n", .{}) catch {};
+    writer.print("  udp-server   Run the UDP server\n", .{}) catch {};
+    writer.flush() catch {};
+}

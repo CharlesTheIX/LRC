@@ -22,8 +22,8 @@ pub const Button = struct {
     txt_color: rl.Color,
     padding: rl.Vector2,
     visible: bool = true,
-    callback: ?*const fn () void = null,
     allocator: *std.mem.Allocator,
+    callback: ?*const fn () void = null,
 
     pub fn deinit(self: *Button) void {
         _ = self;
@@ -45,7 +45,7 @@ pub const Button = struct {
         defer props.allocator.free(label_z);
         const padding = rl.Vector2.init(10, 5);
         const text_width = rl.measureTextEx(props.font, label_z, @as(f32, @floatFromInt(props.font_size)), 3);
-        std.debug.print("Text width: {d}\n", .{text_width});
+        std.debug.print("Text width: {d}, {d}\n", .{ text_width.x, text_width.y });
         const label_width = @as(f32, @floatFromInt(rl.measureText(label_z, props.font_size)));
         const rect = rl.Rectangle.init(props.position.x, props.position.y, label_width + (2 * padding.x), @as(f32, @floatFromInt(props.font_size)) + (2 * padding.y));
         return Button{
