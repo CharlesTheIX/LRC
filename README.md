@@ -175,8 +175,8 @@ src/
       date-time.zig   # Date/time utilities
       timer.zig       # Timer utilities
       utils.zig       # Shared filesystem helpers
-      data/           # Data models (e.g. feeding records)
-      ui/             # raylib-based UI components (buttons, etc.)
+      feeding/        # Feeding data model, file parsing, and formatting (.lrc_database/feeding.z)
+      ui/             # raylib-based UI (root UI, button, info banner, feeding data card, screens/)
   udp/
     root.zig          # Standalone UDP server component
 ```
@@ -186,7 +186,7 @@ src/
 When you run the `lrc` command, the app creates two items in your current working directory (skipped if they already exist):
 
 - `.lrc_config` — a config file
-- `.lrc_database/` — a directory used as the local data store
+- `.lrc_database/` — a directory used as the local data store, including `.lrc_database/feeding.z` (feeding records)
 
 Keep this in mind when running the binary from different directories — each directory you run it from will get its own config/database.
 
