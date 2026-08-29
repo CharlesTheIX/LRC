@@ -1,64 +1,21 @@
-// 2026-08-21:1700,breast partial,Pavla,First feeding of the day|1800,breast full,Pavla,Second feeding of the day:4:3:This is Les's first day of feeding
 const std = @import("std");
+const utils = @import("./utils.zig");
 const DateTime = @import("../date-time.zig").DateTime;
 const createFile = @import("../utils.zig").createFile;
 const readFile = @import("../utils.zig").readFile;
 const writeFile = @import("../utils.zig").writeFile;
 
-const FeedingType = enum {
-    Breast_Partial,
-    Breast_Full,
-    Bottle_Breast_Partial,
-    Bottle_Breast_Full,
-    Bottle_Formula_Partial,
-    Bottle_Formula_Full,
-    Invalid,
-
-    pub fn fromSlice(s: []const u8) FeedingType {
-        if (std.mem.eql(u8, s, "breast partial")) return .Breast_Partial;
-        if (std.mem.eql(u8, s, "breast full")) return .Breast_Full;
-        if (std.mem.eql(u8, s, "bottle breast partial")) return .Bottle_Breast_Partial;
-        if (std.mem.eql(u8, s, "bottle breast full")) return .Bottle_Breast_Full;
-        if (std.mem.eql(u8, s, "bottle formula partial")) return .Bottle_Formula_Partial;
-        if (std.mem.eql(u8, s, "bottle formula full")) return .Bottle_Formula_Full;
-        return .Invalid;
-    }
-
-    pub fn toSlice(self: FeedingType) []const u8 {
-        switch (self) {
-            .Breast_Partial => return "breast partial",
-            .Breast_Full => return "breast full",
-            .Bottle_Breast_Partial => return "bottle breast partial",
-            .Bottle_Breast_Full => return "bottle breast full",
-            .Bottle_Formula_Partial => return "bottle formula partial",
-            .Bottle_Formula_Full => return "bottle formula full",
-            .Invalid => return "invalid",
-        }
-    }
-};
-
-const FeedingItem = struct {
-    notes: []const u8,
-    date_time: DateTime,
-    feeding_type: FeedingType,
-};
-
-const FeedingData = struct {
-    date: []const u8,
-    urination_count: u6,
-    day_note: []const u8,
-    defecation_count: u6,
-    feeding_items: []FeedingItem,
-};
-
-const FeedingProps = struct {
+const Props = struct {
     io: *std.Io,
+    allocator: *std.mem.Allocator,
     env_map: *std.process.Environ.Map,
 };
 
 pub const Feeding = struct {
     io: *std.Io,
+    allocator: *std.mem.Allocator,
     env_map: *std.process.Environ.Map,
+    data: ?[]utils.FeedingData = null,
     file_path: *const [23:0]u8 = ".lrc_database/feeding.z",
 
     pub fn deinit(self: *Feeding) void {
@@ -147,55 +104,102 @@ pub const Feeding = struct {
         return allocator.dupe(u8, formatted_data.items) catch return error.AllocFailed;
     }
 
-    pub fn init(props: FeedingProps) Feeding {
-        const feeding = Feeding{ .io = props.io, .env_map = props.env_map };
+    pub fn init(props: Props) Feeding {
         var file_exists = false;
+        var feeding = Feeding{ .io = props.io, .env_map = props.env_map, .allocator = props.allocator };
         createFile(props.io, props.env_map, feeding.file_path) catch |err| switch (err) {
             error.PathAlreadyExists => file_exists = true,
             else => @panic("Failed to create feeding data file"),
         };
         if (!file_exists) {
-            const content = "# FORMAT: date;feeding_time,feeding_type,feeding_feeder,feeding_notes;urinations;defecations;day_notes\n2026-08-21:1700,partial,David,First feeding of the day|1800,full,David,Second feeding of the day:4:3:This is Les's first day of feeding";
-            writeFile(props.io, props.env_map, feeding.file_path, content) catch @panic("Failed to write initial feeding data file");
+            const example_content = "# FORMAT: date;feeding_time,feeding_duration,feeding_type,feeding_feeder,feeding_notes;urinations;defecations;water_consumed;day_notes\n";
+            writeFile(props.io, props.env_map, feeding.file_path, example_content) catch @panic("Failed to write initial feeding data file");
         }
+
+        const content = readFile(props.io, props.env_map, props.allocator, feeding.file_path) catch @panic("Failed to read feeding data file");
+        feeding.extractDataFromFile(content) catch @panic("Failed to parse feeding data file");
         return feeding;
     }
 
-    pub fn readAll(self: *Feeding, allocator: *std.mem.Allocator) ![]u8 {
-        const content = readFile(self.io, self.env_map, allocator, self.file_path) catch |err| return err;
-        return content;
-    }
-
-    pub fn readLine(self: *Feeding, allocator: *std.mem.Allocator, line_number: usize) ![]const u8 {
-        const content = self.readAll(allocator) catch |err| return err;
-        var content_it = std.mem.splitSequence(u8, content, "\n");
-        var current_line: usize = 0;
-        while (content_it.next()) |line| {
+    /// Parses the raw file contents and stores the resulting entries in `self.data`.
+    /// Lines that don't match the expected format are skipped rather than aborting the whole parse.
+    fn extractDataFromFile(self: *Feeding, data: []const u8) !void {
+        var entries: std.ArrayList(utils.FeedingData) = .empty;
+        var line_it = std.mem.splitSequence(u8, data, "\n");
+        while (line_it.next()) |line| {
             if (line.len == 0) continue; // Skip empty lines
             if (line[0] == '#') continue; // Skip comment lines
-            if (current_line == line_number) return line;
-            current_line += 1;
+
+            const entry = self.parseLine(line) catch |err| {
+                std.debug.print("Skipping malformed feeding entry ({}): {s}\n", .{ err, line });
+                continue;
+            };
+            entries.append(self.allocator.*, entry) catch return error.AllocFailed;
         }
-        return error.LineNotFound;
+
+        self.data = entries.toOwnedSlice(self.allocator.*) catch return error.AllocFailed;
     }
 
-    // pub fn writeAll(self: *Feeding, data: []const u8) !void {
-    //     const cwd = std.Io.Dir.cwd();
-    //     const file = cwd.createFile(self.file_path, .{}) catch return error.FileCreateFailed;
-    //     file.writeAll(data) catch return error.FileWriteFailed;
-    //     file.flush() catch return error.FlushFailed;
-    // }
+    fn parseLine(self: *Feeding, line: []const u8) !utils.FeedingData {
+        var field_it = std.mem.splitSequence(u8, line, ";");
 
-    // pub fn writeToNew(self: *Feeding, io: *std.Io, data: []const u8, file_path: []const u8) !void {
-    //     _ = self;
-    //     const cwd = std.Io.Dir.cwd();
-    //     cwd.createDir(io.*, "data", .default_dir) catch |err| switch (err) {
-    //         error.PathAlreadyExists => {},
-    //         else => return error.DirCreateFailed,
-    //     };
-    //     const data_dir = cwd.openDir(io.*, "data", .{}) catch return error.DirCreateFailed;
-    //     const file = data_dir.createFile(io.*, file_path, .{ .exclusive = true }) catch return error.FileCreateFailed;
-    //     defer file.close(io.*);
-    //     file.writeStreamingAll(io.*, data) catch return error.FileWriteFailed;
-    // }
+        const date_str = field_it.next() orelse return error.InvalidDataFormat;
+        const date = self.allocator.dupe(u8, std.mem.trim(u8, date_str, " \t")) catch return error.AllocFailed;
+
+        const feed_data_str = field_it.next() orelse return error.InvalidDataFormat;
+        const feed_data = std.mem.trim(u8, feed_data_str, " \t");
+
+        var feeding_items: std.ArrayList(utils.FeedingItem) = .empty;
+        var feed_entry_it = std.mem.splitSequence(u8, feed_data, "|");
+        while (feed_entry_it.next()) |feed_entry| {
+            const feed_entry_trimmed = std.mem.trim(u8, feed_entry, " \t");
+            if (feed_entry_trimmed.len == 0) continue;
+
+            var item_it = std.mem.splitSequence(u8, feed_entry_trimmed, ",");
+
+            const time_str = item_it.next() orelse return error.InvalidDataFormat;
+            const time = DateTime.initFromIsoString(std.mem.trim(u8, time_str, " \t")) catch return error.InvalidDataFormat;
+
+            const duration_str = item_it.next() orelse return error.InvalidDataFormat;
+            const duration = std.fmt.parseInt(u6, std.mem.trim(u8, duration_str, " \t"), 10) catch return error.InvalidDataFormat;
+
+            const feed_type_str = item_it.next() orelse return error.InvalidDataFormat;
+            const feeding_type = utils.FeedingType.fromSlice(std.mem.trim(u8, feed_type_str, " \t"));
+
+            const feeder_str = item_it.next() orelse return error.InvalidDataFormat;
+            const feeder = utils.FeedingFeeder.fromSlice(std.mem.trim(u8, feeder_str, " \t"));
+
+            const notes_str = item_it.next() orelse "N/A";
+            const notes = self.allocator.dupe(u8, std.mem.trim(u8, notes_str, " \t")) catch return error.AllocFailed;
+
+            feeding_items.append(self.allocator.*, .{
+                .duration = duration,
+                .time = time,
+                .notes = notes,
+                .feeder = feeder,
+                .feeding_type = feeding_type,
+            }) catch return error.AllocFailed;
+        }
+
+        const urination_str = field_it.next() orelse return error.InvalidDataFormat;
+        const urination_count = std.fmt.parseInt(u6, std.mem.trim(u8, urination_str, " \t"), 10) catch return error.InvalidDataFormat;
+
+        const defecation_str = field_it.next() orelse return error.InvalidDataFormat;
+        const defecation_count = std.fmt.parseInt(u6, std.mem.trim(u8, defecation_str, " \t"), 10) catch return error.InvalidDataFormat;
+
+        const water_str = field_it.next() orelse return error.InvalidDataFormat;
+        const water_consumed = std.fmt.parseInt(u6, std.mem.trim(u8, water_str, " \t"), 10) catch return error.InvalidDataFormat;
+
+        const day_notes_str = field_it.next() orelse "N/A";
+        const day_notes = self.allocator.dupe(u8, std.mem.trim(u8, day_notes_str, " \t")) catch return error.AllocFailed;
+
+        return .{
+            .date = date,
+            .day_notes = day_notes,
+            .water_consumed = water_consumed,
+            .urination_count = urination_count,
+            .defecation_count = defecation_count,
+            .feeding_items = feeding_items.toOwnedSlice(self.allocator.*) catch return error.AllocFailed,
+        };
+    }
 };

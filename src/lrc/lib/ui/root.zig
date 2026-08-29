@@ -24,13 +24,15 @@ pub const UI = struct {
 
     pub fn init(props: Props) UI {
         const config_flags = rl.ConfigFlags{ .vsync_hint = true, .window_resizable = true, .window_transparent = true };
+        rl.setConfigFlags(config_flags);
+        rl.initWindow(800, 600, "LRC");
+
         rl.setTargetFPS(60);
         rl.initAudioDevice();
         defer rl.closeAudioDevice();
-        rl.setConfigFlags(config_flags);
-        const font = rl.loadFont("assets/fonts/JetBrains.ttf") catch @panic("Failed to load font");
-        rl.initWindow(800, 600, "LRC");
+        const font = rl.loadFontEx("./assets/fonts/JetBrains.ttf", 32, null) catch @panic("Failed to load font");
         rl.maximizeWindow();
+
         const timer = Timer.init(.{ .timer_type = .Continuous, .allocator = props.allocator, .target_time = null });
         const button = Button.init(.{
             .font = font,

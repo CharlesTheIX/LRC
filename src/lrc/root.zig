@@ -3,7 +3,7 @@ const UI = @import("lib/ui/root.zig").UI;
 const Config = @import("lib/config.zig").Config;
 const Database = @import("lib/database.zig").Database;
 const DateTime = @import("lib/date-time.zig").DateTime;
-const Feeding = @import("lib/data/feeding.zig").Feeding;
+const Feeding = @import("lib/feeding/root.zig").Feeding;
 
 const Props = struct {
     io: *std.Io,
@@ -21,6 +21,7 @@ pub const LRC = struct {
     writer: *std.Io.Writer,
     allocator: *std.mem.Allocator,
     env_map: *std.process.Environ.Map,
+
     // Application components
     ui: UI,
     config: Config,
@@ -38,18 +39,21 @@ pub const LRC = struct {
     pub fn init(props: Props) LRC {
         var args_it = props.args_it.*;
         _ = args_it.next(); // skip program name
-        const database = Database.init(.{ .env_map = props.env_map, .io = props.io });
         const config = Config.init(.{ .env_map = props.env_map, .io = props.io });
+        const database = Database.init(.{ .env_map = props.env_map, .io = props.io });
+        const feeding = Feeding.init(.{ .env_map = props.env_map, .io = props.io, .allocator = props.allocator });
+        std.debug.print("Feeding data: {any}\n", .{feeding.data});
         return LRC{
             .io = props.io,
             .env_map = props.env_map,
             .reader = props.reader,
             .writer = props.writer,
             .allocator = props.allocator,
+
             .config = config,
+            .feeding = feeding,
             .database = database,
             .ui = UI.init(.{ .allocator = props.allocator }),
-            .feeding = Feeding.init(.{ .io = props.io, .env_map = props.env_map }),
         };
     }
 
