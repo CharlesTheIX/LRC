@@ -17,7 +17,6 @@ pub const Button = struct {
     font: rl.Font,
     font_size: i32,
     label: []const u8,
-    cursor: rl.Cursor,
     bg_color: rl.Color,
     rect: rl.Rectangle,
     txt_color: rl.Color,
@@ -25,6 +24,7 @@ pub const Button = struct {
     visible: bool = true,
     allocator: *std.mem.Allocator,
     callback: ?*const fn () void = null,
+    cursor: rl.MouseCursor = rl.MouseCursor.default,
 
     pub fn deinit(self: *Button) void {
         _ = self;
