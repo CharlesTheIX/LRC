@@ -1,10 +1,6 @@
 const std = @import("std");
 
-const Props = struct {
-    io: *std.Io,
-    port: u16 = 8080,
-    address: []const u8 = "127.0.0.1",
-};
+const Props = struct { io: *std.Io, port: u16 = 8080, address: []const u8 = "127.0.0.1" };
 
 pub const UdpServer = struct {
     port: u16,

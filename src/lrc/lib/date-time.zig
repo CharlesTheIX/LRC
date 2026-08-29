@@ -1,64 +1,7 @@
 const std = @import("std");
 const epoch = std.time.epoch;
 
-const Props = struct {
-    year: epoch.Year,
-    /// 1-12, matching calendar month numbering (unlike JS's 0-11).
-    month: u4,
-    /// 1-31
-    day: u5,
-    hour: u5 = 0,
-    minute: u6 = 0,
-    second: u6 = 0,
-};
-
-const TimeZone = enum(i32) {
-    UTC = 0,
-    BST = 1,
-    CEST = 2,
-
-    /// UTC offset in seconds for this time zone.
-    pub fn offsetSeconds(self: TimeZone) i64 {
-        return @as(i64, @intFromEnum(self)) * 3600;
-    }
-};
-
-const Month = enum(u4) {
-    January = 1,
-    February = 2,
-    March = 3,
-    April = 4,
-    May = 5,
-    June = 6,
-    July = 7,
-    August = 8,
-    September = 9,
-    October = 10,
-    November = 11,
-    December = 12,
-
-    pub fn numeric(self: Month) u4 {
-        return @as(u4, @intFromEnum(self));
-    }
-
-    pub fn fromNumeric(n: u4) !Month {
-        switch (n) {
-            1 => return .January,
-            2 => return .February,
-            3 => return .March,
-            4 => return .April,
-            5 => return .May,
-            6 => return .June,
-            7 => return .July,
-            8 => return .August,
-            9 => return .September,
-            10 => return .October,
-            11 => return .November,
-            12 => return .December,
-            else => return error.InvalidMonthNumber,
-        }
-    }
-};
+const Props = struct { year: epoch.Year, month: u4, day: u5, hour: u5 = 0, minute: u6 = 0, second: u6 = 0 };
 
 pub const DateTime = struct {
     unix_seconds: i64,
@@ -76,7 +19,6 @@ pub const DateTime = struct {
         return .{ .secs = @intCast(self.unix_seconds + self.time_zone.offsetSeconds()) };
     }
 
-    /// 1-31
     pub fn getDate(self: DateTime) u5 {
         const year_day = self.epochSeconds().getEpochDay().calculateYearDay();
         return year_day.calculateMonthDay().day_index + 1;
@@ -115,7 +57,6 @@ pub const DateTime = struct {
         return self.epochSeconds().getDaySeconds().getMinutesIntoHour();
     }
 
-    /// 1-12
     pub fn getMonth(self: DateTime) u4 {
         const year_day = self.epochSeconds().getEpochDay().calculateYearDay();
         return year_day.calculateMonthDay().month.numeric();
@@ -156,11 +97,9 @@ pub const DateTime = struct {
         var days: i64 = 0;
         var year: epoch.Year = epoch.epoch_year;
         while (year < props.year) : (year += 1) days += epoch.getDaysInYear(year);
-
         var month: u4 = 1;
         while (month < props.month) : (month += 1) days += epoch.getDaysInMonth(props.year, @enumFromInt(month));
         days += props.day - 1;
-
         const seconds = days * epoch.secs_per_day +
             @as(i64, props.hour) * 3600 +
             @as(i64, props.minute) * 60 +
@@ -230,5 +169,52 @@ pub const DateTime = struct {
             "{d:0>2}:{d:0>2}:{d:0>2}",
             .{ self.getHours(), self.getMinutes(), self.getSeconds() },
         );
+    }
+};
+
+const Month = enum(u4) {
+    January = 1,
+    February = 2,
+    March = 3,
+    April = 4,
+    May = 5,
+    June = 6,
+    July = 7,
+    August = 8,
+    September = 9,
+    October = 10,
+    November = 11,
+    December = 12,
+
+    pub fn numeric(self: Month) u4 {
+        return @as(u4, @intFromEnum(self));
+    }
+
+    pub fn fromNumeric(n: u4) !Month {
+        switch (n) {
+            1 => return .January,
+            2 => return .February,
+            3 => return .March,
+            4 => return .April,
+            5 => return .May,
+            6 => return .June,
+            7 => return .July,
+            8 => return .August,
+            9 => return .September,
+            10 => return .October,
+            11 => return .November,
+            12 => return .December,
+            else => return error.InvalidMonthNumber,
+        }
+    }
+};
+
+const TimeZone = enum(i32) {
+    UTC = 0,
+    BST = 1,
+    CEST = 2,
+
+    pub fn offsetSeconds(self: TimeZone) i64 {
+        return @as(i64, @intFromEnum(self)) * 3600;
     }
 };

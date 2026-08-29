@@ -2,23 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const sliceToZSlice = @import("./utils.zig").sliceToZSlice;
 
-const TimerFormat = enum {
-    Seconds,
-    MinutesSeconds,
-    HoursMinutesSeconds,
-};
-
-const TimerType = enum {
-    CountUp,
-    Countdown,
-    Continuous,
-};
-
-const Props = struct {
-    timer_type: TimerType,
-    target_time: ?f64 = null,
-    allocator: *std.mem.Allocator,
-};
+const Props = struct { timer_type: TimerType, target_time: ?f64 = null, allocator: *std.mem.Allocator };
 
 pub const Timer = struct {
     paused: bool = false,
@@ -113,4 +97,16 @@ pub const Timer = struct {
             },
         }
     }
+};
+
+const TimerFormat = enum {
+    Seconds,
+    MinutesSeconds,
+    HoursMinutesSeconds,
+};
+
+const TimerType = enum {
+    CountUp,
+    Countdown,
+    Continuous,
 };

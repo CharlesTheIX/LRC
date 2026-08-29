@@ -1,5 +1,4 @@
 const std = @import("std");
-/// Repeatedly used types
 const Io = std.Io;
 const Map = std.process.Environ.Map;
 const Allocator = std.mem.Allocator;

@@ -2,16 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
 
-const Props = struct {
-    font: rl.Font,
-    font_size: i32,
-    label: []const u8,
-    bg_color: rl.Color,
-    txt_color: rl.Color,
-    position: rl.Vector2,
-    callback: ?*const fn () void,
-    allocator: *std.mem.Allocator,
-};
+const Props = struct { font: rl.Font, font_size: i32, label: []const u8, bg_color: rl.Color, txt_color: rl.Color, position: rl.Vector2, callback: ?*const fn () void, allocator: *std.mem.Allocator };
 
 pub const Button = struct {
     font: rl.Font,

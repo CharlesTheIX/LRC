@@ -1,10 +1,7 @@
 const std = @import("std");
 const createFile = @import("utils.zig").createFile;
 
-const Props = struct {
-    io: *std.Io,
-    env_map: *std.process.Environ.Map,
-};
+const Props = struct { io: *std.Io, env_map: *std.process.Environ.Map };
 
 pub const Config = struct {
     io: *std.Io,
@@ -12,7 +9,6 @@ pub const Config = struct {
     file_path: *const [11:0]u8 = ".lrc_config",
 
     pub fn deinit(self: *Config) void {
-        // No resources to free in this example, but if there were, they would be freed here.
         _ = self;
     }
 

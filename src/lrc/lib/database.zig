@@ -1,10 +1,7 @@
 const std = @import("std");
 const createDirectory = @import("utils.zig").createDirectory;
 
-const Props = struct {
-    io: *std.Io,
-    env_map: *std.process.Environ.Map,
-};
+const Props = struct { io: *std.Io, env_map: *std.process.Environ.Map };
 
 pub const Database = struct {
     io: *std.Io,

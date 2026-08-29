@@ -5,14 +5,7 @@ const Database = @import("lib/database.zig").Database;
 const DateTime = @import("lib/date-time.zig").DateTime;
 const Feeding = @import("lib/feeding/root.zig").Feeding;
 
-const Props = struct {
-    io: *std.Io,
-    reader: *std.Io.Reader,
-    writer: *std.Io.Writer,
-    allocator: *std.mem.Allocator,
-    env_map: *std.process.Environ.Map,
-    args_it: *std.process.Args.Iterator,
-};
+const Props = struct { io: *std.Io, reader: *std.Io.Reader, writer: *std.Io.Writer, allocator: *std.mem.Allocator, env_map: *std.process.Environ.Map, args_it: *std.process.Args.Iterator };
 
 pub const LRC = struct {
     /// Application core properties
@@ -53,7 +46,7 @@ pub const LRC = struct {
             .config = config,
             .feeding = feeding,
             .database = database,
-            .ui = UI.init(.{ .allocator = props.allocator }),
+            .ui = UI.init(.{ .allocator = props.allocator, .feeding_data = feeding.data }),
         };
     }
 

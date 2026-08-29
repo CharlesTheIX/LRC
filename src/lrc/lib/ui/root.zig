@@ -1,54 +1,89 @@
 const std = @import("std");
 const rl = @import("raylib");
-const Timer = @import("../timer.zig").Timer;
-const Button = @import("./button.zig").Button;
-const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
+const utils = @import("../feeding/utils.zig");
+const InfoBanner = @import("./info_banner.zig").InfoBanner;
+const HomeScreen = @import("./screens/home.zig").HomeScreen;
 
-const Props = struct {
-    allocator: *std.mem.Allocator,
-};
-
-fn buttonCallback() void {
-    rl.closeWindow();
-}
+const Props = struct { allocator: *std.mem.Allocator, feeding_data: ?[]const utils.FeedingData = null };
 
 pub const UI = struct {
-    timer: Timer,
     font: rl.Font,
-    button: Button,
     allocator: *std.mem.Allocator,
+    home_screen: HomeScreen = null,
+    info_banner: InfoBanner = null,
+
+    // feeding_cards: []FeedingDataCard,
 
     pub fn deinit(self: *UI) void {
-        self.timer.deinit();
+        self.home_screen.deinit();
+        self.info_banner.deinit();
+        rl.unloadFont(self.font);
+        // for (self.feeding_cards) |*card| card.deinit();
+        // self.allocator.free(self.feeding_cards);
+    }
+
+    pub fn draw(self: *UI) void {
+        rl.beginDrawing();
+        rl.clearBackground(rl.Color.blank);
+        self.info_banner.draw();
+        self.home_screen.draw();
+        rl.endDrawing();
+
+        // self.button.draw();
+        // for (self.feeding_cards) |*card| card.draw();
     }
 
     pub fn init(props: Props) UI {
-        const config_flags = rl.ConfigFlags{ .vsync_hint = true, .window_resizable = true, .window_transparent = true };
+        const config_flags = rl.ConfigFlags{ .window_resizable = true, .window_transparent = true };
         rl.setConfigFlags(config_flags);
         rl.initWindow(800, 600, "LRC");
-
         rl.setTargetFPS(60);
         rl.initAudioDevice();
         defer rl.closeAudioDevice();
         const font = rl.loadFontEx("./assets/fonts/JetBrains.ttf", 32, null) catch @panic("Failed to load font");
         rl.maximizeWindow();
 
-        const timer = Timer.init(.{ .timer_type = .Continuous, .allocator = props.allocator, .target_time = null });
-        const button = Button.init(.{
+        // const button = Button.init(.{
+        //     .font = font,
+        //     .font_size = 20,
+        //     .label = "Click Me",
+        //     .bg_color = rl.Color.blue,
+        //     .txt_color = rl.Color.white,
+        //     .allocator = props.allocator,
+        //     .callback = buttonCallback,
+        //     .position = rl.Vector2.init(10, 50),
+        // });
+
+        // const feeding_data = props.feeding_data orelse &.{};
+        // var feeding_cards = props.allocator.alloc(FeedingDataCard, feeding_data.len) catch @panic("Failed to allocate feeding data cards");
+        // var card_position = rl.Vector2.init(10, 170);
+        // for (feeding_data, 0..) |entry, i| {
+        //     feeding_cards[i] = FeedingDataCard.init(.{
+        //         .font = font,
+        //         .font_size = 16,
+        //         .data = entry,
+        //         .bg_color = rl.Color.dark_gray,
+        //         .txt_color = rl.Color.white,
+        //         .position = card_position,
+        //         .allocator = props.allocator,
+        //     });
+        //     card_position.y += feeding_cards[i].rect.height + 10;
+        // }
+
+        return UI{
             .font = font,
-            .font_size = 20,
-            .label = "Click Me",
-            .bg_color = rl.Color.blue,
-            .txt_color = rl.Color.white,
             .allocator = props.allocator,
-            .callback = buttonCallback,
-            .position = rl.Vector2.init(10, 50),
-        });
-        return UI{ .allocator = props.allocator, .timer = timer, .button = button, .font = font };
+            .home_screen = HomeScreen.init(),
+            .info_banner = InfoBanner.init(.{ .allocator = props.allocator }),
+        };
+    }
+
+    fn load(self: *UI) void {
+        _ = self.home_screen;
     }
 
     pub fn run(self: *UI) void {
-        self.timer.start();
+        self.load();
         while (!rl.windowShouldClose()) {
             self.update();
             self.draw();
@@ -56,18 +91,8 @@ pub const UI = struct {
         rl.closeWindow();
     }
 
-    pub fn draw(self: *UI) void {
-        rl.beginDrawing();
-        rl.clearBackground(rl.Color.blank);
-        // rl.drawText("Hello, LRC!", 10, 10, 20, rl.Color.white);
-        rl.drawTextEx(self.font, "Hello, LRC!", .init(10, 10), 20, 3, rl.Color.white);
-        self.button.draw();
-        self.timer.draw(.init(10, 130), 20, rl.Color.white, .MinutesSeconds);
-        rl.endDrawing();
-    }
-
     pub fn update(self: *UI) void {
-        self.timer.update(rl.getFrameTime());
-        self.button.update();
+        self.info_banner.update();
+        self.home_screen.update();
     }
 };
