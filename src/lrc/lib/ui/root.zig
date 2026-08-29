@@ -23,10 +23,11 @@ pub const UI = struct {
     }
 
     pub fn draw(self: *UI) void {
+        var draw_position = rl.Vector2.zero();
         rl.beginDrawing();
         rl.clearBackground(rl.Color.blank);
-        self.info_banner.draw();
-        self.home_screen.draw();
+        self.info_banner.draw(&draw_position);
+        self.home_screen.draw(&draw_position);
         rl.endDrawing();
 
         // self.button.draw();
@@ -74,7 +75,7 @@ pub const UI = struct {
             .font = font,
             .allocator = props.allocator,
             .home_screen = HomeScreen.init(),
-            .info_banner = InfoBanner.init(.{ .allocator = props.allocator }),
+            .info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font }),
         };
     }
 

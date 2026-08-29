@@ -17,12 +17,19 @@ pub const Timer = struct {
         _ = self;
     }
 
-    pub fn draw(self: *Timer, position: rl.Vector2, font_size: i32, color: rl.Color, format: TimerFormat) void {
+    pub fn draw(self: *Timer, draw_position: *rl.Vector2, font_size: i32, color: rl.Color, format: TimerFormat) void {
         const time_str = self.formatTime(format, self.allocator);
         defer self.allocator.free(time_str);
         const zstr = sliceToZSlice(self.allocator, time_str) catch "Failed to convert time string to Z slice";
         defer self.allocator.free(zstr);
-        rl.drawText(zstr, @as(i32, @intFromFloat(position.x)), @as(i32, @intFromFloat(position.y)), font_size, color);
+        rl.drawText(
+            zstr,
+            @as(i32, @intFromFloat(draw_position.x)),
+            @as(i32, @intFromFloat(draw_position.y)),
+            font_size,
+            color,
+        );
+        draw_position.y += @as(f32, @floatFromInt(font_size)) + 5; // Move down for the next line
     }
 
     pub fn init(props: Props) Timer {
