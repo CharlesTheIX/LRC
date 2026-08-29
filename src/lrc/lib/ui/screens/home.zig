@@ -9,7 +9,8 @@ pub const HomeScreen = struct {
         _ = self; // Suppress unused variable warning
     }
 
-    pub fn draw() void {
+    pub fn draw(self: *HomeScreen) void {
+        _ = self; // Suppress unused variable warning
         rl.drawText("Welcome to the Home Screen!", 20, 20, 20, rl.Color.dark_gray);
     }
 

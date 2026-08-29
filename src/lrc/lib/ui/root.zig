@@ -8,9 +8,9 @@ const Props = struct { allocator: *std.mem.Allocator, feeding_data: ?[]const uti
 
 pub const UI = struct {
     font: rl.Font,
+    home_screen: HomeScreen,
+    info_banner: InfoBanner,
     allocator: *std.mem.Allocator,
-    home_screen: HomeScreen = null,
-    info_banner: InfoBanner = null,
 
     // feeding_cards: []FeedingDataCard,
 
