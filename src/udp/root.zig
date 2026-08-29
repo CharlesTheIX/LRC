@@ -16,6 +16,6 @@ pub const UdpServer = struct {
     }
 
     pub fn run(self: *UdpServer) void {
-        _ = self;
+        std.debug.print("Starting UDP server on {s}:{d}\n", .{ self.address, self.port });
     }
 };

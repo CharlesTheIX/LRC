@@ -51,6 +51,7 @@ pub const LRC = struct {
     }
 
     pub fn run(self: *LRC) void {
+        std.debug.print("Running LRC application...\n", .{});
         self.ui.run();
     }
 };

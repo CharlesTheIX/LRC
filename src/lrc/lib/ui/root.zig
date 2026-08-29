@@ -12,26 +12,19 @@ pub const UI = struct {
     info_banner: InfoBanner,
     allocator: *std.mem.Allocator,
 
-    // feeding_cards: []FeedingDataCard,
-
     pub fn deinit(self: *UI) void {
         self.home_screen.deinit();
         self.info_banner.deinit();
         rl.unloadFont(self.font);
-        // for (self.feeding_cards) |*card| card.deinit();
-        // self.allocator.free(self.feeding_cards);
     }
 
     pub fn draw(self: *UI) void {
         var draw_position = rl.Vector2.zero();
         rl.beginDrawing();
-        rl.clearBackground(rl.Color.blank);
+        rl.clearBackground(rl.Color.black);
         self.info_banner.draw(&draw_position);
-        self.home_screen.draw(&draw_position);
+        // self.home_screen.draw(&draw_position);
         rl.endDrawing();
-
-        // self.button.draw();
-        // for (self.feeding_cards) |*card| card.draw();
     }
 
     pub fn init(props: Props) UI {
@@ -43,34 +36,6 @@ pub const UI = struct {
         defer rl.closeAudioDevice();
         const font = rl.loadFontEx("./assets/fonts/JetBrains.ttf", 32, null) catch @panic("Failed to load font");
         rl.maximizeWindow();
-
-        // const button = Button.init(.{
-        //     .font = font,
-        //     .font_size = 20,
-        //     .label = "Click Me",
-        //     .bg_color = rl.Color.blue,
-        //     .txt_color = rl.Color.white,
-        //     .allocator = props.allocator,
-        //     .callback = buttonCallback,
-        //     .position = rl.Vector2.init(10, 50),
-        // });
-
-        // const feeding_data = props.feeding_data orelse &.{};
-        // var feeding_cards = props.allocator.alloc(FeedingDataCard, feeding_data.len) catch @panic("Failed to allocate feeding data cards");
-        // var card_position = rl.Vector2.init(10, 170);
-        // for (feeding_data, 0..) |entry, i| {
-        //     feeding_cards[i] = FeedingDataCard.init(.{
-        //         .font = font,
-        //         .font_size = 16,
-        //         .data = entry,
-        //         .bg_color = rl.Color.dark_gray,
-        //         .txt_color = rl.Color.white,
-        //         .position = card_position,
-        //         .allocator = props.allocator,
-        //     });
-        //     card_position.y += feeding_cards[i].rect.height + 10;
-        // }
-
         return UI{
             .font = font,
             .allocator = props.allocator,

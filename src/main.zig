@@ -2,6 +2,7 @@ const std = @import("std");
 const lrc = @import("lrc");
 const udp = @import("udp");
 const app = @import("app");
+const http = @import("http");
 
 pub fn main(init: std.process.Init) void {
     // Initialize the I/O system
@@ -24,6 +25,11 @@ pub fn main(init: std.process.Init) void {
     const init_command_slice = args_it.next() orelse "invalid";
     const init_command = app.Command.fromSlice(init_command_slice);
     switch (init_command) {
+        .HTTP_SERVER => {
+            var http_server = http.HttpServer.init(.{ .io = &io });
+            defer http_server.deinit();
+            return http_server.run();
+        },
         .LRC => {
             // Init and run the application
             var lrc_app = lrc.LRC.init(.{
@@ -42,8 +48,6 @@ pub fn main(init: std.process.Init) void {
             defer udp_server.deinit();
             return udp_server.run();
         },
-        .Invalid => {
-            return app.showHelp(stdout_writer);
-        },
+        .Invalid => return app.showHelp(stdout_writer),
     }
 }

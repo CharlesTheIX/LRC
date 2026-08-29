@@ -21,20 +21,20 @@ const Props = struct {
 pub const Dropdown = struct {
     font: rl.Font,
     font_size: i32,
-    options: []const []const u8,
-    rect: rl.Rectangle,
     item_height: f32,
+    rect: rl.Rectangle,
     bg_color: rl.Color,
-    txt_color: rl.Color,
-    border_color: rl.Color,
-    highlight_color: rl.Color,
-    padding: rl.Vector2,
     open: bool = false,
+    txt_color: rl.Color,
+    padding: rl.Vector2,
     visible: bool = true,
     selected_index: usize,
+    border_color: rl.Color,
+    highlight_color: rl.Color,
+    options: []const []const u8,
     hovered_index: ?usize = null,
-    callback: ?*const fn (usize) void = null,
     allocator: *std.mem.Allocator,
+    callback: ?*const fn (usize) void = null,
 
     pub fn deinit(self: *Dropdown) void {
         _ = self;
@@ -73,16 +73,16 @@ pub const Dropdown = struct {
             .rect = rect,
             .font = props.font,
             .padding = padding,
-            .options = props.options,
             .item_height = item_height,
             .bg_color = props.bg_color,
-            .txt_color = props.txt_color,
             .font_size = props.font_size,
-            .callback = props.callback,
+            .txt_color = props.txt_color,
             .allocator = props.allocator,
             .border_color = props.border_color,
+            .options = props.options,
             .selected_index = props.selected_index,
             .highlight_color = props.highlight_color,
+            .callback = props.callback,
         };
     }
 

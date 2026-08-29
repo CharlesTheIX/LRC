@@ -25,6 +25,11 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .root_source_file = b.path("src/udp/root.zig"),
     });
+    const http_mod = b.addModule("http", .{
+        .imports = &.{},
+        .target = target,
+        .root_source_file = b.path("src/http/root.zig"),
+    });
 
     // Create executable
     const exe = b.addExecutable(.{
@@ -37,6 +42,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "app", .module = app_mod },
                 .{ .name = "lrc", .module = lrc_mod },
                 .{ .name = "udp", .module = udp_mod },
+                .{ .name = "http", .module = http_mod },
                 .{ .name = "raylib", .module = raylib },
             },
         }),

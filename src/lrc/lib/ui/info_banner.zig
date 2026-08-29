@@ -2,6 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const Timer = @import("../timer.zig").Timer;
 const Dropdown = @import("./dropdown.zig").Dropdown;
+const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
 
 const Props = struct { font: rl.Font, allocator: *std.mem.Allocator };
 
@@ -11,7 +12,6 @@ pub const InfoBanner = struct {
     dropdown: Dropdown,
     timer_started: bool = false,
     allocator: *std.mem.Allocator,
-    layout_padding: rl.Vector2 = rl.Vector2.init(20, 20),
 
     pub fn deinit(self: *InfoBanner) void {
         self.timer.deinit();
@@ -19,18 +19,28 @@ pub const InfoBanner = struct {
     }
 
     pub fn draw(self: *InfoBanner, draw_position: *rl.Vector2) void {
-        draw_position.x += self.layout_padding.x;
-        draw_position.y += self.layout_padding.y;
-        rl.drawText(
-            "Welcome to the LRC Application!",
-            @as(i32, @intFromFloat(draw_position.x)),
-            @as(i32, @intFromFloat(draw_position.y)),
-            20,
-            rl.Color.dark_gray,
-        );
+        const font_size: f32 = 16;
+        const padding = rl.Vector2.init(font_size, font_size).scale(0.5);
+        draw_position.x += padding.x;
+        draw_position.y += padding.y;
+        const app_name = "BABY TRACKER!";
+        const app_name_slice = sliceToZSlice(self.allocator, app_name) catch @panic("Failed to convert app_name to zslice");
+        defer self.allocator.free(app_name_slice);
+        const app_name_width = rl.measureText(app_name_slice, font_size);
+        _ = app_name_width; // Currently unused, but can be used for alignment or other purposes
+        rl.drawTextEx(self.font, app_name_slice, draw_position.*, font_size, 5.0, rl.Color.white);
         draw_position.y += 30; // Move down for the next line
-        self.timer.draw(draw_position, 20, rl.Color.white, .MinutesSeconds);
-        self.dropdown.draw();
+        // self.timer.draw(draw_position, 20, rl.Color.white, .MinutesSeconds);
+        // self.dropdown.draw();
+    }
+
+    fn drawBackground(self: *InfoBanner, draw_position: *rl.Vector2, padding: *rl.Vector2, font_size: *f32) void {
+        _ = self;
+        _ = padding;
+        _ = font_size;
+        const banner_height = 100; // Adjust as needed
+        const banner_rect = rl.Rectangle.init(draw_position.x, draw_position.y, rl.getScreenWidth(), banner_height);
+        rl.drawRectangleRec(banner_rect, rl.Color.dark_gray);
     }
 
     pub fn init(props: Props) InfoBanner {
@@ -46,8 +56,8 @@ pub const InfoBanner = struct {
         // });
         const timer = Timer.init(.{ .timer_type = .Continuous, .allocator = props.allocator, .target_time = null });
         const dropdown = Dropdown.init(.{
-            .font = props.font,
             .font_size = 18,
+            .font = props.font,
             .options = &.{ "Pavla", "David", "Other" },
             .position = rl.Vector2.init(20, 90),
             .bg_color = rl.Color.light_gray,
