@@ -20,7 +20,7 @@ pub const Database = struct {
         const database = Database{ .env_map = props.env_map, .io = props.io };
         createDirectory(database.io, database.env_map, database.directory_path) catch |err| switch (err) {
             error.PathAlreadyExists => {},
-            else => return std.debug.panic("Failed to create database directory: {}\n", .{err}),
+            else => @panic("Failed to create database directory"),
         };
         return database;
     }

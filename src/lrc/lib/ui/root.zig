@@ -9,7 +9,6 @@ const Props = struct {
 };
 
 fn buttonCallback() void {
-    std.debug.print("Button clicked!\n", .{});
     rl.closeWindow();
 }
 

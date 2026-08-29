@@ -20,7 +20,7 @@ pub const Config = struct {
         const config = Config{ .env_map = props.env_map, .io = props.io };
         createFile(config.io, config.env_map, config.file_path) catch |err| switch (err) {
             error.PathAlreadyExists => {},
-            else => return std.debug.panic("Failed to create config file: {}\n", .{err}),
+            else => @panic("Failed to create config file"),
         };
         return config;
     }

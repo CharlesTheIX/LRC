@@ -17,6 +17,7 @@ pub const Button = struct {
     font: rl.Font,
     font_size: i32,
     label: []const u8,
+    cursor: rl.Cursor,
     bg_color: rl.Color,
     rect: rl.Rectangle,
     txt_color: rl.Color,
@@ -31,12 +32,11 @@ pub const Button = struct {
 
     pub fn draw(self: *Button) void {
         if (!self.visible) return;
-        std.debug.print("Rect: {d}, {d}, {d}, {d}\n", .{ self.rect.x, self.rect.y, self.rect.width, self.rect.height });
         rl.drawRectangleRec(self.rect, self.bg_color);
         const label_z = sliceToZSlice(self.allocator, self.label) catch "Failed to convert label string to Z slice";
         defer self.allocator.free(label_z);
         const text_width = rl.measureText(label_z, self.font_size);
-        std.debug.print("Text width: {d}\n", .{text_width});
+        _ = text_width; // Suppress unused variable warning
         rl.drawTextEx(self.font, label_z, .init(self.rect.x + self.padding.x, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), 3, self.txt_color);
     }
 
@@ -45,13 +45,13 @@ pub const Button = struct {
         defer props.allocator.free(label_z);
         const padding = rl.Vector2.init(10, 5);
         const text_width = rl.measureTextEx(props.font, label_z, @as(f32, @floatFromInt(props.font_size)), 3);
-        std.debug.print("Text width: {d}, {d}\n", .{ text_width.x, text_width.y });
+        _ = text_width; // Suppress unused variable warning
         const label_width = @as(f32, @floatFromInt(rl.measureText(label_z, props.font_size)));
         const rect = rl.Rectangle.init(props.position.x, props.position.y, label_width + (2 * padding.x), @as(f32, @floatFromInt(props.font_size)) + (2 * padding.y));
         return Button{
             .rect = rect,
-            .padding = padding,
             .font = props.font,
+            .padding = padding,
             .label = props.label,
             .bg_color = props.bg_color,
             .font_size = props.font_size,
@@ -67,6 +67,9 @@ pub const Button = struct {
 
     pub fn update(self: *Button) void {
         const mouse_pos = rl.getMousePosition();
-        if (rl.isMouseButtonPressed(rl.MouseButton.left) and rl.checkCollisionPointRec(mouse_pos, self.rect)) self.onClick();
+        if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
+            rl.setMouseCursor(rl.MouseCursor.pointing_hand);
+            if (rl.isMouseButtonPressed(rl.MouseButton.left)) self.onClick();
+        } else rl.setMouseCursor(rl.MouseCursor.default);
     }
 };

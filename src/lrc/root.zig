@@ -37,7 +37,7 @@ pub const LRC = struct {
 
     pub fn init(props: Props) LRC {
         var args_it = props.args_it.*;
-        while (args_it.next()) |arg| std.debug.print("arg: {s}\n", .{arg});
+        _ = args_it.next(); // skip program name
         const database = Database.init(.{ .env_map = props.env_map, .io = props.io });
         const config = Config.init(.{ .env_map = props.env_map, .io = props.io });
         return LRC{

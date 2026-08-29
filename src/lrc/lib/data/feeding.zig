@@ -152,11 +152,11 @@ pub const Feeding = struct {
         var file_exists = false;
         createFile(props.io, props.env_map, feeding.file_path) catch |err| switch (err) {
             error.PathAlreadyExists => file_exists = true,
-            else => return std.debug.panic("Failed to create feeding data file: {}\n", .{err}),
+            else => @panic("Failed to create feeding data file"),
         };
         if (!file_exists) {
             const content = "# FORMAT: date;feeding_time,feeding_type,feeding_feeder,feeding_notes;urinations;defecations;day_notes\n2026-08-21:1700,partial,David,First feeding of the day|1800,full,David,Second feeding of the day:4:3:This is Les's first day of feeding";
-            writeFile(props.io, props.env_map, feeding.file_path, content) catch |err| return std.debug.panic("Failed to initialize feeding data file: {}\n", .{err});
+            writeFile(props.io, props.env_map, feeding.file_path, content) catch @panic("Failed to write initial feeding data file");
         }
         return feeding;
     }
