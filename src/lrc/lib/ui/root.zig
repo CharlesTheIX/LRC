@@ -34,7 +34,7 @@ pub const UI = struct {
         rl.setTargetFPS(60);
         rl.initAudioDevice();
         defer rl.closeAudioDevice();
-        const font = rl.loadFontEx("./assets/fonts/JetBrains.ttf", 32, null) catch @panic("Failed to load font");
+        const font = rl.loadFontEx("./assets/fonts/JetBrains.ttf", 16, null) catch @panic("Failed to load font");
         rl.maximizeWindow();
         return UI{
             .font = font,
