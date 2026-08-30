@@ -28,7 +28,9 @@ pub fn main(init: std.process.Init) void {
         .HTTP_SERVER => {
             var http_server = http.HttpServer.init(.{ .io = &io });
             defer http_server.deinit();
-            return http_server.run();
+            return http_server.run() catch |err| {
+                std.debug.print("HTTP server error: {}\n", .{err});
+            };
         },
         .LRC => {
             // Init and run the application
