@@ -17,28 +17,17 @@ pub const Timer = struct {
         _ = self;
     }
 
-    pub fn draw(self: *Timer, draw_position: *rl.Vector2, font_size: i32, color: rl.Color, format: TimerFormat) void {
-        const time_str = self.formatTime(format, self.allocator);
-        defer self.allocator.free(time_str);
-        const zstr = sliceToZSlice(self.allocator, time_str) catch "Failed to convert time string to Z slice";
-        defer self.allocator.free(zstr);
-        rl.drawText(
-            zstr,
-            @as(i32, @intFromFloat(draw_position.x)),
-            @as(i32, @intFromFloat(draw_position.y)),
-            font_size,
-            color,
-        );
-        draw_position.y += @as(f32, @floatFromInt(font_size)) + 5; // Move down for the next line
-    }
-
     pub fn init(props: Props) Timer {
-        const timer = Timer{ .timer_type = props.timer_type, .allocator = props.allocator, .target_time = props.target_time };
+        var timer = Timer{ .timer_type = props.timer_type, .allocator = props.allocator, .target_time = props.target_time };
         if ((props.timer_type == .Countdown or props.timer_type == .CountUp) and props.target_time == null) @panic("target_time must be provided for Countdown and CountUp timers.");
+        if (props.timer_type == .Countdown) {
+            timer.target_time = 0.0;
+            timer.current_time = props.target_time orelse 0.0;
+        }
         return timer;
     }
 
-    fn formatTime(self: *Timer, format: TimerFormat, allocator: *std.mem.Allocator) []const u8 {
+    pub fn formatTime(self: *Timer, format: TimerFormat, allocator: *std.mem.Allocator) []const u8 {
         const total_seconds = @as(u43, @intFromFloat(self.current_time));
         const seconds = total_seconds % 60;
         const hours = @divFloor(total_seconds, 3600);

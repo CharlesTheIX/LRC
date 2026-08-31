@@ -30,7 +30,6 @@ pub const Feeding = struct {
             const example_content = "# FORMAT: date;feeding_time,feeding_duration,feeding_type,feeding_feeder,feeding_notes;urinations;defecations;water_consumed;day_notes\n";
             writeFile(props.io, props.env_map, feeding.file_path, example_content) catch @panic("Failed to write initial feeding data file");
         }
-
         const content = readFile(props.io, props.env_map, props.allocator, feeding.file_path) catch @panic("Failed to read feeding data file");
         defer props.allocator.free(content);
         feeding.extractDataFromFile(content) catch @panic("Failed to parse feeding data file");
@@ -48,6 +47,38 @@ pub const Feeding = struct {
             entries.append(arena, entry) catch return error.AllocFailed;
         }
         self.data = entries.toOwnedSlice(arena) catch return error.AllocFailed;
+    }
+
+    pub fn getLastFeedingDateTime(self: *Feeding) ?DateTime {
+        if (self.data) |data| {
+            if (data.len == 0) return null;
+            const last_entry = data[data.len - 1];
+            const last_feeding_item = self.getLastFeedingItem() orelse return null;
+            var buffer: [64]u8 = undefined;
+            const last_feeding_time_date = last_entry.date;
+            const last_feeding_time = last_feeding_item.time;
+            const last_feeding_time_date_str = std.fmt.bufPrint(&buffer, "{s}T{s}", .{ last_feeding_time_date, last_feeding_time }) catch return null;
+            const date_time = DateTime.initFromIsoString(last_feeding_time_date_str) catch return null;
+            return date_time;
+        }
+        return null;
+    }
+
+    pub fn getLastFeedingItem(self: *Feeding) ?utils.FeedingItem {
+        if (self.data) |data| {
+            if (data.len == 0) return null;
+            const last_entry = data[data.len - 1];
+            const last_entry_feeding_items = last_entry.feeding_items;
+            if (last_entry_feeding_items.len == 0) return null;
+            return last_entry_feeding_items[last_entry_feeding_items.len - 1];
+        }
+        return null;
+    }
+
+    pub fn getNextFeedingItem(self: *Feeding) utils.NextFeedingItem {
+        const last_feeding_item = self.getLastFeedingItem();
+        _ = last_feeding_item;
+        return .{};
     }
 
     fn parseLine(arena: std.mem.Allocator, line: []const u8) !utils.FeedingData {

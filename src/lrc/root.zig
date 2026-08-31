@@ -29,29 +29,29 @@ pub const LRC = struct {
         self.writer.flush() catch {};
     }
 
-    pub fn init(props: Props) LRC {
+    pub fn init(self: *LRC, props: Props) void {
         var args_it = props.args_it.*;
         _ = args_it.next(); // skip program name
         const config = Config.init(.{ .env_map = props.env_map, .io = props.io });
         const database = Database.init(.{ .env_map = props.env_map, .io = props.io });
         const feeding = Feeding.init(.{ .env_map = props.env_map, .io = props.io, .allocator = props.allocator });
-        std.debug.print("Feeding data: {any}\n", .{feeding.data});
-        return LRC{
+        self.* = LRC{
             .io = props.io,
             .env_map = props.env_map,
             .reader = props.reader,
             .writer = props.writer,
             .allocator = props.allocator,
 
+            .ui = undefined,
             .config = config,
             .feeding = feeding,
             .database = database,
-            .ui = UI.init(.{ .allocator = props.allocator, .feeding_data = feeding.data }),
         };
+        // Feeding pointer must reference self's final storage location, not a temporary.
+        self.ui = UI.init(.{ .allocator = props.allocator, .feeding = &self.feeding });
     }
 
     pub fn run(self: *LRC) void {
-        std.debug.print("Running LRC application...\n", .{});
         self.ui.run();
     }
 };

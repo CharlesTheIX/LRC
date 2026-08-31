@@ -34,10 +34,11 @@ pub fn main(init: std.process.Init) void {
         },
         .LRC => {
             // Init and run the application
-            var lrc_app = lrc.LRC.init(.{
+            var lrc_app: lrc.LRC = undefined;
+            lrc_app.init(.{
                 .io = &io,
-                .env_map = env_map,
                 .args_it = &args_it,
+                .env_map = env_map,
                 .allocator = &arena,
                 .reader = stdin_reader,
                 .writer = stdout_writer,

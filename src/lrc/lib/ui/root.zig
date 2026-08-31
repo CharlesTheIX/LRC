@@ -1,13 +1,15 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("../feeding/utils.zig");
+const Feeding = @import("../feeding/root.zig").Feeding;
 const InfoBanner = @import("./info_banner.zig").InfoBanner;
 const HomeScreen = @import("./screens/home.zig").HomeScreen;
 
-const Props = struct { allocator: *std.mem.Allocator, feeding_data: ?[]const utils.FeedingData = null };
+const Props = struct { allocator: *std.mem.Allocator, feeding: *Feeding };
 
 pub const UI = struct {
     font: rl.Font,
+    feeding: *Feeding,
     home_screen: HomeScreen,
     info_banner: InfoBanner,
     allocator: *std.mem.Allocator,
@@ -38,9 +40,10 @@ pub const UI = struct {
         rl.maximizeWindow();
         return UI{
             .font = font,
+            .feeding = props.feeding,
             .allocator = props.allocator,
             .home_screen = HomeScreen.init(),
-            .info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font }),
+            .info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font, .feeding = props.feeding }),
         };
     }
 

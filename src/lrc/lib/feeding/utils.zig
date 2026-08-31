@@ -1,7 +1,14 @@
 const std = @import("std");
 const DateTime = @import("../date-time.zig").DateTime;
 
-pub const FeedingData = struct { date: []const u8, water_consumed: u6, urination_count: u6, defecation_count: u6, day_notes: []const u8, feeding_items: []FeedingItem };
+pub const FeedingData = struct {
+    date: []const u8,
+    water_consumed: u6,
+    urination_count: u6,
+    defecation_count: u6,
+    day_notes: []const u8,
+    feeding_items: []FeedingItem,
+};
 
 pub const FeedingFeeder = enum {
     Pavla,
@@ -26,7 +33,13 @@ pub const FeedingFeeder = enum {
     }
 };
 
-pub const FeedingItem = struct { duration: u6, time: []const u8, notes: []const u8, feeder: FeedingFeeder, feeding_type: FeedingType };
+pub const FeedingItem = struct {
+    duration: u6,
+    time: []const u8,
+    notes: []const u8,
+    feeder: FeedingFeeder,
+    feeding_type: FeedingType,
+};
 
 pub const FeedingType = enum {
     Breast_Partial,
@@ -58,4 +71,9 @@ pub const FeedingType = enum {
             .Invalid => return "invalid",
         }
     }
+};
+
+pub const NextFeedingItem = struct {
+    min: ?DateTime = null,
+    max: ?DateTime = null,
 };

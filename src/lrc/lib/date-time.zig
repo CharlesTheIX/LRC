@@ -85,6 +85,10 @@ pub const DateTime = struct {
         return self.epochSeconds().getDaySeconds().getSecondsIntoMinute();
     }
 
+    pub fn getDiffSeconds(self: DateTime, other: DateTime) i64 {
+        return self.unix_seconds - other.unix_seconds;
+    }
+
     pub fn getTime(self: DateTime) i64 {
         return self.unix_seconds;
     }
