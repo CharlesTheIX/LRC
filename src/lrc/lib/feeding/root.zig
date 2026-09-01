@@ -7,6 +7,16 @@ const writeFile = @import("../utils.zig").writeFile;
 
 const Props = struct { io: *std.Io, allocator: *std.mem.Allocator, env_map: *std.process.Environ.Map };
 
+/// All the content needed to record a single feeding, regardless of caller (UI form or API).
+pub const AddFeedingItemParams = struct {
+    date: []const u8,
+    time: []const u8,
+    duration: u6,
+    feeding_type: utils.FeedingType,
+    feeder: utils.FeedingFeeder,
+    notes: []const u8 = "N/A",
+};
+
 pub const Feeding = struct {
     io: *std.Io,
     allocator: *std.mem.Allocator,
@@ -34,6 +44,48 @@ pub const Feeding = struct {
         defer props.allocator.free(content);
         feeding.extractDataFromFile(content) catch @panic("Failed to parse feeding data file");
         return feeding;
+    }
+
+    /// Adds a feeding item and persists it to disk. Callable from the UI form or an API handler.
+    pub fn addFeedingItem(self: *Feeding, params: AddFeedingItemParams) !void {
+        const arena = self.arena.allocator();
+        const item = utils.FeedingItem{
+            .duration = params.duration,
+            .time = arena.dupe(u8, params.time) catch return error.AllocFailed,
+            .notes = arena.dupe(u8, params.notes) catch return error.AllocFailed,
+            .feeder = params.feeder,
+            .feeding_type = params.feeding_type,
+        };
+
+        var entries: std.ArrayList(utils.FeedingData) = .empty;
+        if (self.data) |data| entries.appendSlice(arena, data) catch return error.AllocFailed;
+
+        var found = false;
+        for (entries.items) |*entry| {
+            if (!std.mem.eql(u8, entry.date, params.date)) continue;
+            var items: std.ArrayList(utils.FeedingItem) = .empty;
+            items.appendSlice(arena, entry.feeding_items) catch return error.AllocFailed;
+            items.append(arena, item) catch return error.AllocFailed;
+            entry.feeding_items = items.toOwnedSlice(arena) catch return error.AllocFailed;
+            found = true;
+            break;
+        }
+        if (!found) {
+            entries.append(arena, .{
+                .date = arena.dupe(u8, params.date) catch return error.AllocFailed,
+                .day_notes = "N/A",
+                .water_consumed = 0,
+                .urination_count = 0,
+                .defecation_count = 0,
+                .feeding_items = arena.dupe(utils.FeedingItem, &[_]utils.FeedingItem{item}) catch return error.AllocFailed,
+            }) catch return error.AllocFailed;
+        }
+
+        self.data = entries.toOwnedSlice(arena) catch return error.AllocFailed;
+
+        const file_content = utils.formatFeedingData(self.allocator.*, self.data.?) catch return error.AllocFailed;
+        defer self.allocator.free(file_content);
+        writeFile(self.io, self.env_map, self.file_path, file_content) catch return error.FileWriteFailed;
     }
 
     fn extractDataFromFile(self: *Feeding, data: []const u8) !void {

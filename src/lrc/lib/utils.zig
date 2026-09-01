@@ -78,4 +78,5 @@ pub fn writeFile(io: *Io, env_map: *Map, file_path: []const u8, data: []const u8
     };
     defer file.close(io.*);
     file.writeStreamingAll(io.*, data) catch return error.FileWriteFailed;
+    file.setLength(io.*, data.len) catch return error.FileWriteFailed;
 }

@@ -4,8 +4,8 @@ const utils = @import("./utils.zig");
 const Button = @import("../button.zig").Button;
 const Audio = @import("../audio/root.zig").Audio;
 const Timer = @import("../../timer/root.zig").Timer;
-const Dropdown = @import("../dropdown.zig").Dropdown;
 const Feeding = @import("../../feeding/root.zig").Feeding;
+const Dropdown = @import("../inputs/dropdown.zig").Dropdown;
 const DateTime = @import("../../date_time/root.zig").DateTime;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
@@ -56,7 +56,7 @@ pub const InfoBanner = struct {
         const next_feed_max = if (last_feed) |lf| lf.addSeconds(@as(i64, @intCast(60 * 60 * 3))) else null;
         const diff_secs = if (next_feed_max) |nfm| nfm.getDiffSeconds(DateTime.now().addSeconds(6 * 1200)) else 0;
         const timer_target_time = @as(f64, @floatFromInt(diff_secs));
-        const timer = Timer.init(.{ .timer_type = .Countdown, .allocator = props.allocator, .target_time = timer_target_time });
+        const timer = Timer.init(.{ .timer_type = .Countdown, .allocator = props.allocator, .target_time = timer_target_time, .continue_on_finish = true });
         const dropdown = Dropdown.init(.{
             .font_size = 18,
             .font = props.font,

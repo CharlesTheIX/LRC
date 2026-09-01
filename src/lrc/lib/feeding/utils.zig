@@ -10,6 +10,37 @@ pub const FeedingData = struct {
     feeding_items: []FeedingItem,
 };
 
+/// Serializes feeding data back into the `.lrc_database/feeding.z` file format.
+pub fn formatFeedingData(allocator: std.mem.Allocator, data: []const FeedingData) ![]u8 {
+    var buffer: std.ArrayList(u8) = .empty;
+    try buffer.appendSlice(allocator, "# FORMAT: date;feeding_time,feeding_duration,feeding_type,feeding_feeder,feeding_notes;urinations;defecations;water_consumed;day_notes\n");
+    for (data) |entry| {
+        try buffer.appendSlice(allocator, entry.date);
+        try buffer.append(allocator, ';');
+        for (entry.feeding_items, 0..) |item, i| {
+            if (i > 0) try buffer.append(allocator, '|');
+            const item_str = try std.fmt.allocPrint(allocator, "{s},{d},{s},{s},{s}", .{
+                item.time,
+                item.duration,
+                item.feeding_type.toSlice(),
+                item.feeder.toSlice(),
+                item.notes,
+            });
+            defer allocator.free(item_str);
+            try buffer.appendSlice(allocator, item_str);
+        }
+        const tail = try std.fmt.allocPrint(allocator, ";{d};{d};{d};{s}\n", .{
+            entry.urination_count,
+            entry.defecation_count,
+            entry.water_consumed,
+            entry.day_notes,
+        });
+        defer allocator.free(tail);
+        try buffer.appendSlice(allocator, tail);
+    }
+    return buffer.toOwnedSlice(allocator);
+}
+
 pub const FeedingFeeder = enum {
     Pavla,
     David,
