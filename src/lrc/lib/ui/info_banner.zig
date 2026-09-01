@@ -7,7 +7,7 @@ const DateTime = @import("../date-time.zig").DateTime;
 const Feeding = @import("../feeding/root.zig").Feeding;
 const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
 
-const Props = struct { font: rl.Font, allocator: *std.mem.Allocator, feeding: *Feeding };
+const Props = struct { font: rl.Font, allocator: *std.mem.Allocator, feeding: *Feeding, audio: *rl.AudioDevice };
 
 pub const InfoBanner = struct {
     timer: Timer,
@@ -16,6 +16,7 @@ pub const InfoBanner = struct {
     dropdown: Dropdown,
     font_size: f32 = 16,
     last_feed: ?DateTime,
+    audio: *rl.AudioDevice,
     next_feed_min: ?DateTime,
     next_feed_max: ?DateTime,
     timer_started: bool = false,
@@ -114,7 +115,7 @@ pub const InfoBanner = struct {
             if (self.timer.current_time >= @as(f64, @floatFromInt(nfm.unix_seconds))) timer_color = rl.Color.red;
         }
         if (self.next_feed_max) |nfm| {
-            if (self.timer.current_time >= @as(f64, @floatFromInt(nfm.unix_seconds))) timer_color = rl.Color.red;
+            if (self.timer.current_time >= @as(f64, @floatFromInt(nfm.unix_seconds)) + 30) timer_color = rl.Color.red;
         }
         rl.drawTextEx(self.font, timer_current_time_zstr, draw_position.*, self.font_size, 2.0, timer_color);
     }
@@ -124,7 +125,6 @@ pub const InfoBanner = struct {
         const next_feed_min = if (last_feed) |lf| lf.addSeconds(@as(i64, @intCast(60 * 60 * 2))) else null;
         const next_feed_max = if (last_feed) |lf| lf.addSeconds(@as(i64, @intCast(60 * 60 * 3))) else null;
         const diff_secs = if (next_feed_max) |nfm| nfm.getDiffSeconds(DateTime.now().addSeconds(6 * 1200)) else 0;
-        std.debug.print("{d}\n", .{diff_secs});
         const timer_target_time = @as(f64, @floatFromInt(diff_secs));
         const timer = Timer.init(.{ .timer_type = .Countdown, .allocator = props.allocator, .target_time = timer_target_time });
         const dropdown = Dropdown.init(.{
@@ -168,5 +168,7 @@ pub const InfoBanner = struct {
         self.button.update();
         self.dropdown.update();
         self.timer.update(rl.getFrameTime());
+
+        if (self.timer.finished) {}
     }
 };

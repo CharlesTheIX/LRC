@@ -5,7 +5,6 @@ const Props = struct { year: epoch.Year, month: u4, day: u5, hour: u5 = 0, minut
 
 pub const DateTime = struct {
     unix_seconds: i64,
-    time_zone: TimeZone = .UTC,
 
     pub fn addDays(self: DateTime, days: i64) DateTime {
         return self.addSeconds(days * epoch.secs_per_day);
@@ -16,7 +15,7 @@ pub const DateTime = struct {
     }
 
     fn epochSeconds(self: DateTime) epoch.EpochSeconds {
-        return .{ .secs = @intCast(self.unix_seconds + self.time_zone.offsetSeconds()) };
+        return .{ .secs = @intCast(self.unix_seconds) };
     }
 
     pub fn getDate(self: DateTime) u5 {
@@ -93,10 +92,6 @@ pub const DateTime = struct {
         return self.unix_seconds;
     }
 
-    pub fn getTimeZone(self: DateTime) TimeZone {
-        return self.time_zone;
-    }
-
     pub fn init(props: Props) DateTime {
         var days: i64 = 0;
         var year: epoch.Year = epoch.epoch_year;
@@ -142,10 +137,6 @@ pub const DateTime = struct {
         }
     }
 
-    pub fn setTimeZone(self: DateTime, time_zone: TimeZone) DateTime {
-        return .{ .unix_seconds = self.unix_seconds, .time_zone = time_zone };
-    }
-
     pub fn toDateString(self: DateTime, allocator: *std.mem.Allocator) ![]u8 {
         return std.fmt.allocPrint(
             allocator.*,
@@ -155,15 +146,10 @@ pub const DateTime = struct {
     }
 
     pub fn toIsoString(self: DateTime, allocator: *std.mem.Allocator) ![]u8 {
-        const offset_hours = @divTrunc(self.time_zone.offsetSeconds(), 3600);
         return std.fmt.allocPrint(
             allocator.*,
-            "{d:0>4}-{d:0>2}-{d:0>2}T{d:0>2}:{d:0>2}:{d:0>2}{s}{d:0>2}:00",
-            .{
-                self.getFullYear(),                 self.getMonth(),    self.getDate(),
-                self.getHours(),                    self.getMinutes(),  self.getSeconds(),
-                if (offset_hours < 0) "-" else "+", @abs(offset_hours),
-            },
+            "{d:0>4}-{d:0>2}-{d:0>2}T{d:0>2}:{d:0>2}:{d:0>2}Z",
+            .{ self.getFullYear(), self.getMonth(), self.getDate(), self.getHours(), self.getMinutes(), self.getSeconds() },
         );
     }
 
@@ -210,15 +196,5 @@ const Month = enum(u4) {
             12 => return .December,
             else => return error.InvalidMonthNumber,
         }
-    }
-};
-
-const TimeZone = enum(i32) {
-    UTC = 0,
-    BST = 1,
-    CEST = 2,
-
-    pub fn offsetSeconds(self: TimeZone) i64 {
-        return @as(i64, @intFromEnum(self)) * 3600;
     }
 };
