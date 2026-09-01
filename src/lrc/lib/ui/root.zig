@@ -1,13 +1,15 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("../feeding/utils.zig");
+const Audio = @import("./audio/root.zig").Audio;
 const Feeding = @import("../feeding/root.zig").Feeding;
-const InfoBanner = @import("./info_banner.zig").InfoBanner;
 const HomeScreen = @import("./screens/home.zig").HomeScreen;
+const InfoBanner = @import("./info_banner/root.zig").InfoBanner;
 
 const Props = struct { allocator: *std.mem.Allocator, feeding: *Feeding };
 
 pub const UI = struct {
+    audio: Audio,
     font: rl.Font,
     feeding: *Feeding,
     home_screen: HomeScreen,
@@ -15,9 +17,11 @@ pub const UI = struct {
     allocator: *std.mem.Allocator,
 
     pub fn deinit(self: *UI) void {
+        self.audio.deinit();
         self.home_screen.deinit();
         self.info_banner.deinit();
         rl.unloadFont(self.font);
+        rl.closeAudioDevice();
     }
 
     pub fn draw(self: *UI) void {
@@ -25,30 +29,30 @@ pub const UI = struct {
         rl.beginDrawing();
         rl.clearBackground(rl.Color.black);
         self.info_banner.draw(&draw_position);
-        // self.home_screen.draw(&draw_position);
         rl.endDrawing();
     }
 
-    pub fn init(props: Props) UI {
+    pub fn init(self: *UI, props: Props) void {
         const config_flags = rl.ConfigFlags{ .window_resizable = true, .window_transparent = true };
         rl.setConfigFlags(config_flags);
         rl.initWindow(800, 600, "LRC");
         rl.setTargetFPS(60);
         rl.initAudioDevice();
-        defer rl.closeAudioDevice();
         const font = rl.loadFontEx("./assets/fonts/JetBrains.ttf", 16, null) catch @panic("Failed to load font");
         rl.maximizeWindow();
-        return UI{
+        self.* = UI{
             .font = font,
             .feeding = props.feeding,
+            .info_banner = undefined,
             .allocator = props.allocator,
             .home_screen = HomeScreen.init(),
-            .info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font, .feeding = props.feeding }),
+            .audio = Audio.init(.{ .allocator = props.allocator }),
         };
+        self.info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font, .feeding = props.feeding, .audio = &self.audio });
     }
 
     fn load(self: *UI) void {
-        _ = self.home_screen;
+        self.info_banner.load();
     }
 
     pub fn run(self: *UI) void {

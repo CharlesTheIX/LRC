@@ -1,16 +1,17 @@
 const std = @import("std");
 const rl = @import("raylib");
+const utils = @import("./utils.zig");
 const sliceToZSlice = @import("./utils.zig").sliceToZSlice;
 
-const Props = struct { timer_type: TimerType, target_time: ?f64 = null, allocator: *std.mem.Allocator };
+const Props = struct { timer_type: utils.TimerType, target_time: ?f64 = null, allocator: *std.mem.Allocator };
 
 pub const Timer = struct {
     paused: bool = false,
     running: bool = false,
-    timer_type: TimerType,
     finished: bool = false,
     current_time: f64 = 0.0,
     target_time: ?f64 = null,
+    timer_type: utils.TimerType,
     allocator: *std.mem.Allocator,
 
     pub fn deinit(self: *Timer) void {
@@ -27,7 +28,7 @@ pub const Timer = struct {
         return timer;
     }
 
-    pub fn formatTime(self: *Timer, format: TimerFormat, allocator: *std.mem.Allocator) []const u8 {
+    pub fn formatTime(self: *Timer, format: utils.TimerFormat, allocator: *std.mem.Allocator) []const u8 {
         const total_seconds = @as(u43, @intFromFloat(self.current_time));
         const seconds = total_seconds % 60;
         const hours = @divFloor(total_seconds, 3600);
@@ -77,7 +78,7 @@ pub const Timer = struct {
                 self.current_time += delta_time;
                 if (self.target_time) |target| {
                     if (self.current_time >= target) {
-                        self.current_time = target; // Clamp to target time
+                        self.current_time = target;
                         self.finished = true;
                         self.stop();
                     }
@@ -86,23 +87,11 @@ pub const Timer = struct {
             .Countdown => {
                 self.current_time -= delta_time;
                 if (self.current_time <= 0.0) {
-                    self.current_time = 0.0; // Clamp to zero
+                    self.current_time = 0.0;
                     self.finished = true;
                     self.stop();
                 }
             },
         }
     }
-};
-
-const TimerFormat = enum {
-    Seconds,
-    MinutesSeconds,
-    HoursMinutesSeconds,
-};
-
-const TimerType = enum {
-    CountUp,
-    Countdown,
-    Continuous,
 };

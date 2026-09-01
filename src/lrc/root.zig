@@ -1,54 +1,43 @@
 const std = @import("std");
 const UI = @import("lib/ui/root.zig").UI;
-const Config = @import("lib/config.zig").Config;
-const Database = @import("lib/database.zig").Database;
-const DateTime = @import("lib/date-time.zig").DateTime;
 const Feeding = @import("lib/feeding/root.zig").Feeding;
+const DateTime = @import("lib/date_time/root.zig").DateTime;
 
 const Props = struct { io: *std.Io, reader: *std.Io.Reader, writer: *std.Io.Writer, allocator: *std.mem.Allocator, env_map: *std.process.Environ.Map, args_it: *std.process.Args.Iterator };
 
 pub const LRC = struct {
-    /// Application core properties
+    ui: UI,
     io: *std.Io,
+    feeding: Feeding,
     reader: *std.Io.Reader,
     writer: *std.Io.Writer,
     allocator: *std.mem.Allocator,
     env_map: *std.process.Environ.Map,
 
-    // Application components
-    ui: UI,
-    config: Config,
-    feeding: Feeding,
-    database: Database,
-
     pub fn deinit(self: *LRC) void {
         self.ui.deinit();
-        self.config.deinit();
         self.feeding.deinit();
-        self.database.deinit();
         self.writer.flush() catch {};
     }
 
     pub fn init(self: *LRC, props: Props) void {
         var args_it = props.args_it.*;
         _ = args_it.next(); // skip program name
-        const config = Config.init(.{ .env_map = props.env_map, .io = props.io });
-        const database = Database.init(.{ .env_map = props.env_map, .io = props.io });
         const feeding = Feeding.init(.{ .env_map = props.env_map, .io = props.io, .allocator = props.allocator });
         self.* = LRC{
+            .ui = undefined,
             .io = props.io,
+            .feeding = feeding,
             .env_map = props.env_map,
             .reader = props.reader,
             .writer = props.writer,
             .allocator = props.allocator,
-
-            .ui = undefined,
-            .config = config,
-            .feeding = feeding,
-            .database = database,
         };
-        // Feeding pointer must reference self's final storage location, not a temporary.
-        self.ui = UI.init(.{ .allocator = props.allocator, .feeding = &self.feeding });
+        UI.init(&self.ui, .{ .allocator = props.allocator, .feeding = &self.feeding });
+    }
+
+    fn load(self: *LRC) void {
+        _ = self;
     }
 
     pub fn run(self: *LRC) void {

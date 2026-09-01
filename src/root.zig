@@ -2,8 +2,8 @@ const std = @import("std");
 
 pub const Command = enum {
     LRC,
-    HTTP_SERVER,
     UDP_SERVER,
+    HTTP_SERVER,
     Invalid,
 
     pub fn fromSlice(slice: []const u8) Command {

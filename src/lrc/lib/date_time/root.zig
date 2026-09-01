@@ -1,5 +1,6 @@
 const std = @import("std");
 const epoch = std.time.epoch;
+const Month = @import("utils.zig").Month;
 
 const Props = struct { year: epoch.Year, month: u4, day: u5, hour: u5 = 0, minute: u6 = 0, second: u6 = 0 };
 
@@ -116,7 +117,6 @@ pub const DateTime = struct {
         const year = std.fmt.parseInt(epoch.Year, str[0..4], 10) catch return error.InvalidFormat;
         const month = std.fmt.parseInt(u4, str[5..7], 10) catch return error.InvalidFormat;
         const day = std.fmt.parseInt(u5, str[8..10], 10) catch return error.InvalidFormat;
-
         var hour: u5 = 0;
         var minute: u6 = 0;
         var second: u6 = 0;
@@ -125,7 +125,6 @@ pub const DateTime = struct {
             minute = std.fmt.parseInt(u6, str[14..16], 10) catch return error.InvalidFormat;
             second = std.fmt.parseInt(u6, str[17..19], 10) catch return error.InvalidFormat;
         }
-
         return .init(.{ .year = year, .month = month, .day = day, .hour = hour, .minute = minute, .second = second });
     }
 
@@ -159,42 +158,5 @@ pub const DateTime = struct {
             "{d:0>2}:{d:0>2}:{d:0>2}",
             .{ self.getHours(), self.getMinutes(), self.getSeconds() },
         );
-    }
-};
-
-const Month = enum(u4) {
-    January = 1,
-    February = 2,
-    March = 3,
-    April = 4,
-    May = 5,
-    June = 6,
-    July = 7,
-    August = 8,
-    September = 9,
-    October = 10,
-    November = 11,
-    December = 12,
-
-    pub fn numeric(self: Month) u4 {
-        return @as(u4, @intFromEnum(self));
-    }
-
-    pub fn fromNumeric(n: u4) !Month {
-        switch (n) {
-            1 => return .January,
-            2 => return .February,
-            3 => return .March,
-            4 => return .April,
-            5 => return .May,
-            6 => return .June,
-            7 => return .July,
-            8 => return .August,
-            9 => return .September,
-            10 => return .October,
-            11 => return .November,
-            12 => return .December,
-            else => return error.InvalidMonthNumber,
-        }
     }
 };

@@ -28,17 +28,15 @@ pub fn main(init: std.process.Init) void {
         .HTTP_SERVER => {
             var http_server = http.HttpServer.init(.{ .io = &io });
             defer http_server.deinit();
-            return http_server.run() catch |err| {
-                std.debug.print("HTTP server error: {}\n", .{err});
-            };
+            return http_server.run() catch |err| std.debug.print("HTTP server error: {}\n", .{err});
         },
         .LRC => {
             // Init and run the application
             var lrc_app: lrc.LRC = undefined;
             lrc_app.init(.{
                 .io = &io,
-                .args_it = &args_it,
                 .env_map = env_map,
+                .args_it = &args_it,
                 .allocator = &arena,
                 .reader = stdin_reader,
                 .writer = stdout_writer,

@@ -1,5 +1,5 @@
 const std = @import("std");
-const DateTime = @import("../date-time.zig").DateTime;
+const DateTime = @import("../date_time/root.zig").DateTime;
 
 pub const FeedingData = struct {
     date: []const u8,
@@ -71,9 +71,4 @@ pub const FeedingType = enum {
             .Invalid => return "invalid",
         }
     }
-};
-
-pub const NextFeedingItem = struct {
-    min: ?DateTime = null,
-    max: ?DateTime = null,
 };

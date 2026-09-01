@@ -1,6 +1,6 @@
 const std = @import("std");
 const utils = @import("./utils.zig");
-const DateTime = @import("../date-time.zig").DateTime;
+const DateTime = @import("../date_time/root.zig").DateTime;
 const createFile = @import("../utils.zig").createFile;
 const readFile = @import("../utils.zig").readFile;
 const writeFile = @import("../utils.zig").writeFile;
@@ -64,7 +64,7 @@ pub const Feeding = struct {
         return null;
     }
 
-    pub fn getLastFeedingItem(self: *Feeding) ?utils.FeedingItem {
+    fn getLastFeedingItem(self: *Feeding) ?utils.FeedingItem {
         if (self.data) |data| {
             if (data.len == 0) return null;
             const last_entry = data[data.len - 1];
@@ -75,43 +75,28 @@ pub const Feeding = struct {
         return null;
     }
 
-    pub fn getNextFeedingItem(self: *Feeding) utils.NextFeedingItem {
-        const last_feeding_item = self.getLastFeedingItem();
-        _ = last_feeding_item;
-        return .{};
-    }
-
     fn parseLine(arena: std.mem.Allocator, line: []const u8) !utils.FeedingData {
         var field_it = std.mem.splitSequence(u8, line, ";");
-
         const date_str = field_it.next() orelse return error.InvalidDataFormat;
         const date = arena.dupe(u8, std.mem.trim(u8, date_str, " \t")) catch return error.AllocFailed;
-
         const feed_data_str = field_it.next() orelse return error.InvalidDataFormat;
         const feed_data = std.mem.trim(u8, feed_data_str, " \t");
-
         var feeding_items: std.ArrayList(utils.FeedingItem) = .empty;
         var feed_entry_it = std.mem.splitSequence(u8, feed_data, "|");
         while (feed_entry_it.next()) |feed_entry| {
             const feed_entry_trimmed = std.mem.trim(u8, feed_entry, " \t");
             if (feed_entry_trimmed.len == 0) continue;
-
             var item_it = std.mem.splitSequence(u8, feed_entry_trimmed, ",");
             const time_str = item_it.next() orelse return error.InvalidDataFormat;
             const time = arena.dupe(u8, std.mem.trim(u8, time_str, " \t")) catch return error.AllocFailed;
-
             const duration_str = item_it.next() orelse return error.InvalidDataFormat;
             const duration = std.fmt.parseInt(u6, std.mem.trim(u8, duration_str, " \t"), 10) catch return error.InvalidDataFormat;
-
             const feed_type_str = item_it.next() orelse return error.InvalidDataFormat;
             const feeding_type = utils.FeedingType.fromSlice(std.mem.trim(u8, feed_type_str, " \t"));
-
             const feeder_str = item_it.next() orelse return error.InvalidDataFormat;
             const feeder = utils.FeedingFeeder.fromSlice(std.mem.trim(u8, feeder_str, " \t"));
-
             const notes_str = item_it.next() orelse "N/A";
             const notes = arena.dupe(u8, std.mem.trim(u8, notes_str, " \t")) catch return error.AllocFailed;
-
             feeding_items.append(arena, .{
                 .duration = duration,
                 .time = time,
@@ -120,19 +105,14 @@ pub const Feeding = struct {
                 .feeding_type = feeding_type,
             }) catch return error.AllocFailed;
         }
-
         const urination_str = field_it.next() orelse return error.InvalidDataFormat;
         const urination_count = std.fmt.parseInt(u6, std.mem.trim(u8, urination_str, " \t"), 10) catch return error.InvalidDataFormat;
-
         const defecation_str = field_it.next() orelse return error.InvalidDataFormat;
         const defecation_count = std.fmt.parseInt(u6, std.mem.trim(u8, defecation_str, " \t"), 10) catch return error.InvalidDataFormat;
-
         const water_str = field_it.next() orelse return error.InvalidDataFormat;
         const water_consumed = std.fmt.parseInt(u6, std.mem.trim(u8, water_str, " \t"), 10) catch return error.InvalidDataFormat;
-
         const day_notes_str = field_it.next() orelse "N/A";
         const day_notes = arena.dupe(u8, std.mem.trim(u8, day_notes_str, " \t")) catch return error.AllocFailed;
-
         return .{
             .date = date,
             .day_notes = day_notes,

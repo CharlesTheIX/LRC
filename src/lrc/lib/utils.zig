@@ -1,4 +1,5 @@
 const std = @import("std");
+
 const Io = std.Io;
 const Map = std.process.Environ.Map;
 const Allocator = std.mem.Allocator;
@@ -7,7 +8,6 @@ pub fn appendFile(io: *Io, env_map: *Map, file_path: []const u8, data: []const u
     const home_dir = getHomeDirectory(io, env_map) catch |err| return err;
     const file = home_dir.openFile(io.*, file_path, .{ .mode = .read_write }) catch |err| switch (err) {
         error.FileNotFound => {
-            // If the file doesn't exist, create it
             const new_file = home_dir.createFile(io.*, file_path, .{ .exclusive = true }) catch return error.FileCreateFailed;
             defer new_file.close(io.*);
             new_file.writeStreamingAll(io.*, data) catch return error.FileWriteFailed;
@@ -69,7 +69,6 @@ pub fn writeFile(io: *Io, env_map: *Map, file_path: []const u8, data: []const u8
     const home_dir = getHomeDirectory(io, env_map) catch |err| return err;
     const file = home_dir.openFile(io.*, file_path, .{ .mode = .read_write }) catch |err| switch (err) {
         error.FileNotFound => {
-            // If the file doesn't exist, create it
             const new_file = home_dir.createFile(io.*, file_path, .{ .exclusive = true }) catch return error.FileCreateFailed;
             defer new_file.close(io.*);
             new_file.writeStreamingAll(io.*, data) catch return error.FileWriteFailed;

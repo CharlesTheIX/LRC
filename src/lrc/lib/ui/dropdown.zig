@@ -5,15 +5,15 @@ const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
 const Props = struct {
     font: rl.Font,
     font_size: i32,
-    options: []const []const u8,
-    position: rl.Vector2,
     bg_color: rl.Color,
     txt_color: rl.Color,
+    position: rl.Vector2,
     border_color: rl.Color,
     highlight_color: rl.Color,
     selected_index: usize = 0,
-    callback: ?*const fn (usize) void = null,
+    options: []const []const u8,
     allocator: *std.mem.Allocator,
+    callback: ?*const fn (usize) void = null,
 };
 
 /// A `<select>`-style dropdown: shows the selected option in a closed box, and
@@ -54,11 +54,10 @@ pub const Dropdown = struct {
     }
 
     pub fn init(props: Props) Dropdown {
+        var max_label_width: f32 = 0;
         const padding = rl.Vector2.init(10, 5);
         const font_height = @as(f32, @floatFromInt(props.font_size));
         const item_height = font_height + (2 * padding.y);
-
-        var max_label_width: f32 = 0;
         for (props.options) |option| {
             const label_z = sliceToZSlice(props.allocator, option) catch "Failed to convert label string to Z slice";
             defer props.allocator.free(label_z);
@@ -68,7 +67,6 @@ pub const Dropdown = struct {
         // Reserve extra width on the right for the arrow indicator.
         const width = max_label_width + (2 * padding.x) + item_height;
         const rect = rl.Rectangle.init(props.position.x, props.position.y, width, item_height);
-
         return Dropdown{
             .rect = rect,
             .font = props.font,
@@ -87,16 +85,14 @@ pub const Dropdown = struct {
     }
 
     pub fn update(self: *Dropdown) void {
+        var cursor_set = false;
         const mouse_pos = rl.getMousePosition();
         const clicked = rl.isMouseButtonPressed(rl.MouseButton.left);
-        var cursor_set = false;
-
         if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
             rl.setMouseCursor(rl.MouseCursor.pointing_hand);
             cursor_set = true;
             if (clicked) self.open = !self.open;
         }
-
         if (self.open) {
             self.hovered_index = null;
             for (self.options, 0..) |_, i| {
@@ -109,9 +105,7 @@ pub const Dropdown = struct {
                 }
             }
             // Clicking anywhere else while open closes the list without changing the selection.
-            if (clicked and self.hovered_index == null and !rl.checkCollisionPointRec(mouse_pos, self.rect)) {
-                self.open = false;
-            }
+            if (clicked and self.hovered_index == null and !rl.checkCollisionPointRec(mouse_pos, self.rect)) self.open = false;
         }
 
         if (!cursor_set) rl.setMouseCursor(rl.MouseCursor.default);
