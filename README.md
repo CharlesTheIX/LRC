@@ -1,12 +1,12 @@
-# 🐐 LRC
+# LRC
 
-LRC (Livestock Ration Companion) is a small terminal/desktop application, written in [Zig](https://ziglang.org), for tracking feeding data. It ships with a [raylib](https://www.raylib.com)-powered UI as well as a lightweight UDP server component.
+LRC is a parent-focused tracker for Lea Rose Charles, a newborn baby. Written in [Zig](https://ziglang.org), it is being built to record feeds and other day-to-day care information. It ships with a [raylib](https://www.raylib.com)-powered UI as well as lightweight HTTP and UDP server components.
 
 This README is written for people who have **never installed or used Zig before** — follow it top to bottom and you'll go from a bare machine to a running app.
 
 ## 📚 Table of Contents
 
-- [🐐 LRC](#-lrc)
+- [LRC](#lrc)
   - [📚 Table of Contents](#-table-of-contents)
   - [✨ Overview](#-overview)
   - [🧰 Prerequisites](#-prerequisites)
@@ -19,6 +19,7 @@ This README is written for people who have **never installed or used Zig before*
   - [▶️ Running the Application](#️-running-the-application)
     - [Run the LRC UI app](#run-the-lrc-ui-app)
     - [Run the UDP server](#run-the-udp-server)
+    - [Run the HTTP server](#run-the-http-server)
     - [No arguments / help](#no-arguments--help)
   - [🗂️ Project Structure](#️-project-structure)
   - [💾 Configuration \& Data Storage](#-configuration--data-storage)
@@ -29,12 +30,13 @@ This README is written for people who have **never installed or used Zig before*
 
 ## ✨ Overview
 
-LRC is a single Zig binary that exposes two sub-commands:
+LRC is a single Zig binary that exposes three sub-commands:
 
-| Command      | Description                                |
-| ------------ | ------------------------------------------ |
-| `lrc`        | Runs the main LRC application (raylib UI). |
-| `udp-server` | Runs a standalone UDP server component.    |
+| Command       | Description                                    |
+| ------------- | ---------------------------------------------- |
+| `lrc`         | Runs the Lea Rose Charles tracker (raylib UI). |
+| `udp-server`  | Starts the standalone UDP server component.    |
+| `http-server` | Starts an HTTP server on port `8080`.          |
 
 The project is built entirely with Zig's native build system (`build.zig`) — there is no separate Makefile, CMake, or package manager involved for the app itself.
 
@@ -142,6 +144,16 @@ zig build run -- udp-server
 ./zig-out/bin/lrc udp-server
 ```
 
+### Run the HTTP server
+
+```sh
+zig build run -- http-server
+# or, after building:
+./zig-out/bin/lrc http-server
+```
+
+The HTTP server listens on all network interfaces at port `8080` and currently responds to every request with plain-text `Hello, World!`.
+
 ### No arguments / help
 
 Running the binary with no recognized sub-command prints usage help:
@@ -153,8 +165,9 @@ Running the binary with no recognized sub-command prints usage help:
 ```
 Usage: lrc <command>
 Commands:
-  lrc          Run the LRC application
   udp-server   Run the UDP server
+  http-server  Run the HTTP server
+  lrc          Run the LRC application
 ```
 
 ## 🗂️ Project Structure
@@ -170,35 +183,31 @@ assets/
 src/
   main.zig            # Entry point — parses the sub-command and dispatches
   root.zig            # Shared "app" module (Command enum, help text)
-  lrc/
-    root.zig          # LRC application core (wires together UI, config, database, feeding data)
-    lib/
-      config.zig      # Local config file handling (.lrc_config)
-      database.zig    # Local database directory handling (.lrc_database)
-      date-time.zig   # Date/time utilities
-      timer.zig       # Timer utilities
-      utils.zig       # Shared filesystem helpers
-      feeding/        # Feeding data model, file parsing, and formatting (.lrc_database/feeding.z)
-      ui/             # raylib-based UI
-        root.zig        # Root UI component — window/audio device setup, draw/update loop
-        button.zig      # Button component
-        dropdown.zig    # Dropdown component
-        feeding-data-card.zig # Feeding data card component
-        audio/          # Audio component — load/unload and play/stop/pause music & sound effects
-        info_banner/    # Info banner component (root + draw helpers)
-        screens/        # Screen-level components (e.g. home screen)
-  udp/
+  lib/
+    lrc/
+      root.zig        # Lea Rose Charles tracker core
+      lib/
+        config.zig    # Config helper (not initialized by the app yet)
+        database.zig  # Database-directory helper (not initialized by the app yet)
+        date_time/    # Date/time utilities
+        timer/        # Timer utilities
+        feeding/      # Feeding model and persistence
+        ui/           # raylib UI, including text, number, select, and textarea inputs
+    http/
+      root.zig        # Standalone HTTP server
+    udp/
     root.zig          # Standalone UDP server component
 ```
 
 ## 💾 Configuration & Data Storage
 
-When you run the `lrc` command, the app creates two items in your current working directory (skipped if they already exist):
+The `lrc` command reads and writes Lea Rose Charles's feeding data relative to your home directory (`$HOME`), not the directory from which the binary is run. Before the first run, create its data directory:
 
-- `.lrc_config` — a config file
-- `.lrc_database/` — a directory used as the local data store, including `.lrc_database/feeding.z` (feeding records)
+```sh
+mkdir -p ~/.lrc_database
+```
 
-Keep this in mind when running the binary from different directories — each directory you run it from will get its own config/database.
+On first launch, LRC creates `~/.lrc_database/feeding.z` with a format header. That file stores feeding records; the data model also supports other daily care information. The configuration helper exists but is not currently initialized by the application, so no `.lrc_config` file is created.
 
 ## 📦 Dependencies
 

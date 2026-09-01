@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
     });
     const lrc_mod = b.addModule("lrc", .{
         .target = target,
-        .root_source_file = b.path("src/lrc/root.zig"),
+        .root_source_file = b.path("src/lib/lrc/root.zig"),
         .imports = &.{
             .{ .name = "raylib", .module = raylib },
         },
@@ -23,12 +23,12 @@ pub fn build(b: *std.Build) void {
     const udp_mod = b.addModule("udp", .{
         .imports = &.{},
         .target = target,
-        .root_source_file = b.path("src/udp/root.zig"),
+        .root_source_file = b.path("src/lib/udp/root.zig"),
     });
     const http_mod = b.addModule("http", .{
         .imports = &.{},
         .target = target,
-        .root_source_file = b.path("src/http/root.zig"),
+        .root_source_file = b.path("src/lib/http/root.zig"),
     });
 
     // Create executable
