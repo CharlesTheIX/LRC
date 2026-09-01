@@ -9,7 +9,7 @@ const DateTime = @import("../../date_time/root.zig").DateTime;
 const TextInput = @import("../inputs/text_input.zig").TextInput;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
-const Props = struct { font: rl.Font, position: rl.Vector2, feeding: *Feeding, allocator: *std.mem.Allocator };
+const Props = struct { font: rl.Font, position: rl.Vector2, feeding: *Feeding, allocator: *std.mem.Allocator, layout_rect: rl.Rectangle };
 
 /// Records a feeding that already happened, with manually entered date, time and duration.
 pub const HistoricFeedingForm = struct {
@@ -24,6 +24,7 @@ pub const HistoricFeedingForm = struct {
     feeder_dropdown: Dropdown,
     allocator: *std.mem.Allocator,
     feeding_type_dropdown: Dropdown,
+    layout_rect: rl.Rectangle,
 
     pub fn deinit(self: *HistoricFeedingForm) void {
         self.date_input.deinit();
@@ -58,13 +59,13 @@ pub const HistoricFeedingForm = struct {
         defer props.allocator.free(date);
         const time = now.toTimeString(props.allocator) catch "";
         defer props.allocator.free(time);
-        const date_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .position = pos, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Date (YYYY-MM-DD)", .initial_value = date, .allocator = props.allocator });
+        const date_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Date (YYYY-MM-DD)", .initial_value = date, .allocator = props.allocator, .layout_rect = props.layout_rect });
         pos.y += spacing;
-        const time_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .position = pos, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Time (HH:MM:SS)", .initial_value = time, .allocator = props.allocator });
+        const time_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Time (HH:MM:SS)", .initial_value = time, .allocator = props.allocator, .layout_rect = props.layout_rect });
         pos.y += spacing;
-        const duration_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .position = pos, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Duration (minutes)", .allocator = props.allocator });
+        const duration_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Duration (minutes)", .allocator = props.allocator, .layout_rect = props.layout_rect });
         pos.y += spacing;
-        const notes_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .position = pos, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Notes", .allocator = props.allocator });
+        const notes_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Notes", .allocator = props.allocator, .layout_rect = props.layout_rect });
         pos.y += spacing;
         const feeding_type_dropdown = Dropdown.init(.{
             .font_size = 16,
@@ -112,6 +113,7 @@ pub const HistoricFeedingForm = struct {
             .allocator = props.allocator,
             .feeder_dropdown = feeder_dropdown,
             .feeding_type_dropdown = feeding_type_dropdown,
+            .layout_rect = props.layout_rect,
         };
     }
 

@@ -9,7 +9,7 @@ const DateTime = @import("../../date_time/root.zig").DateTime;
 const TextInput = @import("../inputs/text_input.zig").TextInput;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
-const Props = struct { font: rl.Font, position: rl.Vector2, feeding: *Feeding, allocator: *std.mem.Allocator };
+const Props = struct { font: rl.Font, position: rl.Vector2, feeding: *Feeding, allocator: *std.mem.Allocator, layout_rect: rl.Rectangle };
 
 /// Records a feeding as it happens: start/stop buttons time it and calculate the duration.
 pub const TimerFeedingForm = struct {
@@ -25,6 +25,7 @@ pub const TimerFeedingForm = struct {
     feeder_dropdown: Dropdown,
     allocator: *std.mem.Allocator,
     feeding_type_dropdown: Dropdown,
+    layout_rect: rl.Rectangle,
 
     pub fn deinit(self: *TimerFeedingForm) void {
         self.notes_input.deinit();
@@ -57,7 +58,7 @@ pub const TimerFeedingForm = struct {
         const spacing: f32 = 40;
         var pos = props.position;
         const field_width: f32 = 200;
-        const notes_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .position = pos, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Notes", .allocator = props.allocator });
+        const notes_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Notes", .allocator = props.allocator, .layout_rect = props.layout_rect });
         pos.y += spacing;
         const feeding_type_dropdown = Dropdown.init(.{
             .font_size = 16,
@@ -124,6 +125,7 @@ pub const TimerFeedingForm = struct {
             .start_button = start_button,
             .stop_button = stop_button,
             .allocator = props.allocator,
+            .layout_rect = props.layout_rect,
             .feeder_dropdown = feeder_dropdown,
             .feeding_type_dropdown = feeding_type_dropdown,
         };

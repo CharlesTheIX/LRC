@@ -8,8 +8,8 @@ const Props = struct {
     font_size: i32,
     bg_color: rl.Color,
     txt_color: rl.Color,
-    position: rl.Vector2,
     border_color: rl.Color,
+    layout_rect: rl.Rectangle,
     placeholder: []const u8 = "",
     allocator: *std.mem.Allocator,
     initial_value: []const u8 = "",
@@ -48,9 +48,7 @@ pub const TextInput = struct {
     pub fn init(props: Props) TextInput {
         const font_height = @as(f32, @floatFromInt(props.font_size));
         const height = font_height + (2 * 6);
-        const rect = rl.Rectangle.init(props.position.x, props.position.y, props.width, height);
         var input = TextInput{
-            .rect = rect,
             .font = props.font,
             .font_size = props.font_size,
             .bg_color = props.bg_color,
@@ -58,6 +56,7 @@ pub const TextInput = struct {
             .allocator = props.allocator,
             .border_color = props.border_color,
             .placeholder = props.placeholder,
+            .rect = rl.Rectangle.init(props.layout_rect.x, props.layout_rect.y, props.width, height),
         };
         input.setValue(props.initial_value);
         return input;
@@ -71,19 +70,23 @@ pub const TextInput = struct {
 
     pub fn update(self: *TextInput) void {
         if (!self.visible) return;
+        rl.setMouseCursor(.default);
         const mouse_pos = rl.getMousePosition();
-        if (rl.isMouseButtonPressed(.left)) self.focused = rl.checkCollisionPointRec(mouse_pos, self.rect);
-        if (rl.checkCollisionPointRec(mouse_pos, self.rect)) rl.setMouseCursor(.ibeam) else if (!self.focused) rl.setMouseCursor(.default);
-        if (!self.focused) return;
-        while (true) {
-            const char = rl.getCharPressed();
-            if (char == 0) break;
-            if (char < 32 or char > 126) continue;
-            if (self.len >= self.buffer.len) continue;
-            self.buffer[self.len] = @intCast(char);
-            self.len += 1;
-        }
-        if ((rl.isKeyPressed(.backspace) or rl.isKeyPressedRepeat(.backspace)) and self.len > 0) self.len -= 1;
+        std.debug.print("Mouse position: ({any})\nRect: ({any})\n", .{ mouse_pos, self.rect });
+        if (rl.checkCollisionPointRec(mouse_pos, self.rect)) rl.setMouseCursor(.ibeam);
+
+        // if (rl.isMouseButtonPressed(.left)) self.focused = rl.checkCollisionPointRec(mouse_pos, self.rect);
+        // if (rl.checkCollisionPointRec(mouse_pos, self.rect)) rl.setMouseCursor(.ibeam) else if (!self.focused) rl.setMouseCursor(.default);
+        // if (!self.focused) return;
+        // while (true) {
+        //     const char = rl.getCharPressed();
+        //     if (char == 0) break;
+        //     if (char < 32 or char > 126) continue;
+        //     if (self.len >= self.buffer.len) continue;
+        //     self.buffer[self.len] = @intCast(char);
+        //     self.len += 1;
+        // }
+        // if ((rl.isKeyPressed(.backspace) or rl.isKeyPressedRepeat(.backspace)) and self.len > 0) self.len -= 1;
     }
 
     pub fn value(self: *TextInput) []const u8 {

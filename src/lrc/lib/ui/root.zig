@@ -7,6 +7,7 @@ const HomeScreen = @import("./screens/home.zig").HomeScreen;
 const InfoBanner = @import("./info_banner/root.zig").InfoBanner;
 const TimerFeedingForm = @import("./feeding_form/root.zig").TimerFeedingForm;
 const HistoricFeedingForm = @import("./feeding_form/root.zig").HistoricFeedingForm;
+const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
 
 const Props = struct { allocator: *std.mem.Allocator, feeding: *Feeding };
 
@@ -16,9 +17,10 @@ pub const UI = struct {
     feeding: *Feeding,
     home_screen: HomeScreen,
     info_banner: InfoBanner,
+    allocator: *std.mem.Allocator,
     timer_feeding_form: TimerFeedingForm,
     historic_feeding_form: HistoricFeedingForm,
-    allocator: *std.mem.Allocator,
+    font_file_path: []const u8 = "./assets/fonts/JetBrains.ttf",
 
     pub fn deinit(self: *UI) void {
         self.audio.deinit();
@@ -34,9 +36,10 @@ pub const UI = struct {
         var draw_position = rl.Vector2.zero();
         rl.beginDrawing();
         rl.clearBackground(rl.Color.black);
-        self.info_banner.draw(&draw_position);
-        self.timer_feeding_form.draw();
-        self.historic_feeding_form.draw();
+        // self.info_banner.draw(&draw_position);
+        self.home_screen.draw(&draw_position);
+        // self.timer_feeding_form.draw();
+        // self.historic_feeding_form.draw();
         rl.endDrawing();
     }
 
@@ -46,21 +49,27 @@ pub const UI = struct {
         rl.initWindow(800, 600, "LRC");
         rl.setTargetFPS(60);
         rl.initAudioDevice();
-        const font = rl.loadFontEx("./assets/fonts/JetBrains.ttf", 16, null) catch @panic("Failed to load font");
         rl.maximizeWindow();
         self.* = UI{
-            .font = font,
+            .font = undefined,
             .feeding = props.feeding,
+            .home_screen = undefined,
             .info_banner = undefined,
+            .allocator = props.allocator,
             .timer_feeding_form = undefined,
             .historic_feeding_form = undefined,
-            .allocator = props.allocator,
-            .home_screen = HomeScreen.init(),
             .audio = Audio.init(.{ .allocator = props.allocator }),
         };
+        const font_file_path_slice = sliceToZSlice(props.allocator, self.font_file_path) catch @panic("Failed to convert font file path to Z slice");
+        defer props.allocator.free(font_file_path_slice);
+        const font = rl.loadFontEx(font_file_path_slice, 16, null) catch @panic("Failed to load font");
+        const home_screen_layout_rect = rl.Rectangle.init(0, 0, @as(f32, @floatFromInt(rl.getScreenWidth())), @as(f32, @floatFromInt(rl.getScreenHeight())));
+        self.font = font;
+        self.home_screen = HomeScreen.init(.{ .font = font, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
+
         self.info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font, .feeding = props.feeding, .audio = &self.audio });
-        self.timer_feeding_form = TimerFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(20, 220), .feeding = props.feeding, .allocator = props.allocator });
-        self.historic_feeding_form = HistoricFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(320, 220), .feeding = props.feeding, .allocator = props.allocator });
+        self.timer_feeding_form = TimerFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(20, 220), .feeding = props.feeding, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
+        self.historic_feeding_form = HistoricFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(320, 220), .feeding = props.feeding, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
     }
 
     fn load(self: *UI) void {
