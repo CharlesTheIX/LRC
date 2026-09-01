@@ -5,8 +5,8 @@ const Button = @import("../button.zig").Button;
 const Audio = @import("../audio/root.zig").Audio;
 const Timer = @import("../../timer/root.zig").Timer;
 const Feeding = @import("../../feeding/root.zig").Feeding;
-const Dropdown = @import("../inputs/dropdown.zig").Dropdown;
 const DateTime = @import("../../date_time/root.zig").DateTime;
+const SelectInput = @import("../inputs/select_input.zig").SelectInput;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
 const Props = struct { font: rl.Font, allocator: *std.mem.Allocator, feeding: *Feeding, audio: *Audio };
@@ -16,7 +16,7 @@ pub const InfoBanner = struct {
     audio: *Audio,
     font: rl.Font,
     button: Button,
-    dropdown: Dropdown,
+    select: SelectInput,
     font_size: f32 = 16,
     last_feed: ?DateTime,
     next_feed_min: ?DateTime,
@@ -27,7 +27,7 @@ pub const InfoBanner = struct {
 
     pub fn deinit(self: *InfoBanner) void {
         self.timer.deinit();
-        self.dropdown.deinit();
+        self.select.deinit();
     }
 
     pub fn draw(self: *InfoBanner, draw_position: *rl.Vector2) void {
@@ -47,7 +47,7 @@ pub const InfoBanner = struct {
         draw_position.x = 0; // Reset x position for the next line
         draw_position.y += self.font_size; // Move down for the app name
         draw_position.y += self.padding.y; // Move down for the padding
-        // self.dropdown.draw();
+        // self.select.draw();
     }
 
     pub fn init(props: Props) InfoBanner {
@@ -57,7 +57,7 @@ pub const InfoBanner = struct {
         const diff_secs = if (next_feed_max) |nfm| nfm.getDiffSeconds(DateTime.now().addSeconds(6 * 1200)) else 0;
         const timer_target_time = @as(f64, @floatFromInt(diff_secs));
         const timer = Timer.init(.{ .timer_type = .Countdown, .allocator = props.allocator, .target_time = timer_target_time, .continue_on_finish = true });
-        const dropdown = Dropdown.init(.{
+        const select = SelectInput.init(.{
             .font_size = 18,
             .font = props.font,
             .txt_color = rl.Color.black,
@@ -83,7 +83,7 @@ pub const InfoBanner = struct {
             .timer = timer,
             .button = button,
             .audio = props.audio,
-            .dropdown = dropdown,
+            .select = select,
             .last_feed = last_feed,
             .allocator = props.allocator,
             .next_feed_min = next_feed_min,
@@ -101,7 +101,7 @@ pub const InfoBanner = struct {
             self.timer_started = true;
         }
         self.button.update();
-        self.dropdown.update();
+        self.select.update();
         self.timer.update(rl.getFrameTime());
         if (self.timer.finished) {}
 

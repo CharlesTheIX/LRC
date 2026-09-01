@@ -4,9 +4,9 @@ const utils = @import("./utils.zig");
 const Button = @import("../button.zig").Button;
 const feeding_utils = @import("../../feeding/utils.zig");
 const Feeding = @import("../../feeding/root.zig").Feeding;
-const Dropdown = @import("../inputs/dropdown.zig").Dropdown;
 const DateTime = @import("../../date_time/root.zig").DateTime;
 const TextInput = @import("../inputs/text_input.zig").TextInput;
+const SelectInput = @import("../inputs/select_input.zig").SelectInput;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
 const Props = struct { font: rl.Font, position: rl.Vector2, feeding: *Feeding, allocator: *std.mem.Allocator, layout_rect: rl.Rectangle };
@@ -22,9 +22,9 @@ pub const TimerFeedingForm = struct {
     status: []const u8 = "",
     start_time: ?DateTime = null,
     duration: ?u6 = null,
-    feeder_dropdown: Dropdown,
+    feeder_select: SelectInput,
     allocator: *std.mem.Allocator,
-    feeding_type_dropdown: Dropdown,
+    feeding_type_select: SelectInput,
     layout_rect: rl.Rectangle,
 
     pub fn deinit(self: *TimerFeedingForm) void {
@@ -32,14 +32,14 @@ pub const TimerFeedingForm = struct {
         self.submit_button.deinit();
         self.start_button.deinit();
         self.stop_button.deinit();
-        self.feeder_dropdown.deinit();
-        self.feeding_type_dropdown.deinit();
+        self.feeder_select.deinit();
+        self.feeding_type_select.deinit();
     }
 
     pub fn draw(self: *TimerFeedingForm) void {
         self.notes_input.draw();
-        self.feeder_dropdown.draw();
-        self.feeding_type_dropdown.draw();
+        self.feeder_select.draw();
+        self.feeding_type_select.draw();
         self.start_button.draw();
         self.stop_button.draw();
         self.submit_button.draw();
@@ -60,7 +60,7 @@ pub const TimerFeedingForm = struct {
         const field_width: f32 = 200;
         const notes_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Notes", .allocator = props.allocator, .layout_rect = rl.Rectangle.init(pos.x, pos.y, field_width, 0) });
         pos.y += spacing;
-        const feeding_type_dropdown = Dropdown.init(.{
+        const feeding_type_select = SelectInput.init(.{
             .font_size = 16,
             .position = pos,
             .font = props.font,
@@ -72,7 +72,7 @@ pub const TimerFeedingForm = struct {
             .options = &utils.feeding_type_options,
         });
         pos.y += spacing;
-        const feeder_dropdown = Dropdown.init(.{
+        const feeder_select = SelectInput.init(.{
             .font_size = 16,
             .position = pos,
             .font = props.font,
@@ -126,8 +126,8 @@ pub const TimerFeedingForm = struct {
             .stop_button = stop_button,
             .allocator = props.allocator,
             .layout_rect = props.layout_rect,
-            .feeder_dropdown = feeder_dropdown,
-            .feeding_type_dropdown = feeding_type_dropdown,
+            .feeder_select = feeder_select,
+            .feeding_type_select = feeding_type_select,
         };
     }
 
@@ -156,8 +156,8 @@ pub const TimerFeedingForm = struct {
             .time = time,
             .duration = duration,
             .notes = if (self.notes_input.value().len > 0) self.notes_input.value() else "N/A",
-            .feeder = feeding_utils.FeedingFeeder.fromSlice(utils.feeder_options[self.feeder_dropdown.selected_index]),
-            .feeding_type = feeding_utils.FeedingType.fromSlice(utils.feeding_type_options[self.feeding_type_dropdown.selected_index]),
+            .feeder = feeding_utils.FeedingFeeder.fromSlice(utils.feeder_options[self.feeder_select.selected_index]),
+            .feeding_type = feeding_utils.FeedingType.fromSlice(utils.feeding_type_options[self.feeding_type_select.selected_index]),
         }) catch {
             self.status = "Failed to save feeding item";
             return;
@@ -187,8 +187,8 @@ pub const TimerFeedingForm = struct {
 
     pub fn update(self: *TimerFeedingForm) void {
         self.notes_input.update();
-        self.feeder_dropdown.update();
-        self.feeding_type_dropdown.update();
+        self.feeder_select.update();
+        self.feeding_type_select.update();
 
         const mouse_pos = rl.getMousePosition();
         if (self.start_button.visible and rl.checkCollisionPointRec(mouse_pos, self.start_button.rect)) {

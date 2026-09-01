@@ -4,9 +4,9 @@ const utils = @import("./utils.zig");
 const Button = @import("../button.zig").Button;
 const feeding_utils = @import("../../feeding/utils.zig");
 const Feeding = @import("../../feeding/root.zig").Feeding;
-const Dropdown = @import("../inputs/dropdown.zig").Dropdown;
 const DateTime = @import("../../date_time/root.zig").DateTime;
 const TextInput = @import("../inputs/text_input.zig").TextInput;
+const SelectInput = @import("../inputs/select_input.zig").SelectInput;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
 const Props = struct { font: rl.Font, position: rl.Vector2, feeding: *Feeding, allocator: *std.mem.Allocator, layout_rect: rl.Rectangle };
@@ -21,28 +21,28 @@ pub const HistoricFeedingForm = struct {
     notes_input: TextInput,
     submit_button: Button,
     status: []const u8 = "",
-    feeder_dropdown: Dropdown,
+    feeder_select: SelectInput,
     allocator: *std.mem.Allocator,
-    feeding_type_dropdown: Dropdown,
+    feeding_type_select: SelectInput,
     layout_rect: rl.Rectangle,
 
     pub fn deinit(self: *HistoricFeedingForm) void {
         self.date_input.deinit();
         self.time_input.deinit();
-        self.duration_input.deinit();
         self.notes_input.deinit();
         self.submit_button.deinit();
-        self.feeder_dropdown.deinit();
-        self.feeding_type_dropdown.deinit();
+        self.feeder_select.deinit();
+        self.duration_input.deinit();
+        self.feeding_type_select.deinit();
     }
 
     pub fn draw(self: *HistoricFeedingForm) void {
         self.date_input.draw();
         self.time_input.draw();
-        self.duration_input.draw();
         self.notes_input.draw();
-        self.feeder_dropdown.draw();
-        self.feeding_type_dropdown.draw();
+        self.duration_input.draw();
+        self.feeder_select.draw();
+        self.feeding_type_select.draw();
         self.submit_button.draw();
         if (self.status.len == 0) return;
         const status_z = sliceToZSlice(self.allocator, self.status) catch return;
@@ -67,7 +67,7 @@ pub const HistoricFeedingForm = struct {
         pos.y += spacing;
         const notes_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Notes", .allocator = props.allocator, .layout_rect = rl.Rectangle.init(pos.x, pos.y, field_width, 0) });
         pos.y += spacing;
-        const feeding_type_dropdown = Dropdown.init(.{
+        const feeding_type_select = SelectInput.init(.{
             .font_size = 16,
             .position = pos,
             .font = props.font,
@@ -79,7 +79,7 @@ pub const HistoricFeedingForm = struct {
             .options = &utils.feeding_type_options,
         });
         pos.y += spacing;
-        const feeder_dropdown = Dropdown.init(.{
+        const feeder_select = SelectInput.init(.{
             .font_size = 16,
             .position = pos,
             .font = props.font,
@@ -111,8 +111,8 @@ pub const HistoricFeedingForm = struct {
             .notes_input = notes_input,
             .submit_button = submit_button,
             .allocator = props.allocator,
-            .feeder_dropdown = feeder_dropdown,
-            .feeding_type_dropdown = feeding_type_dropdown,
+            .feeder_select = feeder_select,
+            .feeding_type_select = feeding_type_select,
             .layout_rect = props.layout_rect,
         };
     }
@@ -132,8 +132,8 @@ pub const HistoricFeedingForm = struct {
             .date = self.date_input.value(),
             .time = self.time_input.value(),
             .notes = if (self.notes_input.value().len > 0) self.notes_input.value() else "N/A",
-            .feeder = feeding_utils.FeedingFeeder.fromSlice(utils.feeder_options[self.feeder_dropdown.selected_index]),
-            .feeding_type = feeding_utils.FeedingType.fromSlice(utils.feeding_type_options[self.feeding_type_dropdown.selected_index]),
+            .feeder = feeding_utils.FeedingFeeder.fromSlice(utils.feeder_options[self.feeder_select.selected_index]),
+            .feeding_type = feeding_utils.FeedingType.fromSlice(utils.feeding_type_options[self.feeding_type_select.selected_index]),
         }) catch {
             self.status = "Failed to save feeding item";
             return;
@@ -146,8 +146,8 @@ pub const HistoricFeedingForm = struct {
         self.time_input.update();
         self.duration_input.update();
         self.notes_input.update();
-        self.feeder_dropdown.update();
-        self.feeding_type_dropdown.update();
+        self.feeder_select.update();
+        self.feeding_type_select.update();
         const mouse_pos = rl.getMousePosition();
         if (rl.checkCollisionPointRec(mouse_pos, self.submit_button.rect)) {
             rl.setMouseCursor(.pointing_hand);
