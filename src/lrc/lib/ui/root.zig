@@ -5,8 +5,8 @@ const Audio = @import("./audio/root.zig").Audio;
 const Feeding = @import("../feeding/root.zig").Feeding;
 const HomeScreen = @import("./screens/home.zig").HomeScreen;
 const InfoBanner = @import("./info_banner/root.zig").InfoBanner;
-const TimerFeedingForm = @import("./feeding_form/root.zig").TimerFeedingForm;
-const HistoricFeedingForm = @import("./feeding_form/root.zig").HistoricFeedingForm;
+// const TimerFeedingForm = @import("./feeding_form/root.zig").TimerFeedingForm;
+// const HistoricFeedingForm = @import("./feeding_form/root.zig").HistoricFeedingForm;
 const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
 
 const Props = struct { allocator: *std.mem.Allocator, feeding: *Feeding };
@@ -18,16 +18,16 @@ pub const UI = struct {
     home_screen: HomeScreen,
     info_banner: InfoBanner,
     allocator: *std.mem.Allocator,
-    timer_feeding_form: TimerFeedingForm,
-    historic_feeding_form: HistoricFeedingForm,
+    // timer_feeding_form: TimerFeedingForm,
+    // historic_feeding_form: HistoricFeedingForm,
     font_file_path: []const u8 = "./assets/fonts/JetBrains.ttf",
 
     pub fn deinit(self: *UI) void {
         self.audio.deinit();
         self.home_screen.deinit();
         self.info_banner.deinit();
-        self.timer_feeding_form.deinit();
-        self.historic_feeding_form.deinit();
+        // self.timer_feeding_form.deinit();
+        // self.historic_feeding_form.deinit();
         rl.unloadFont(self.font);
         rl.closeAudioDevice();
     }
@@ -56,8 +56,8 @@ pub const UI = struct {
             .home_screen = undefined,
             .info_banner = undefined,
             .allocator = props.allocator,
-            .timer_feeding_form = undefined,
-            .historic_feeding_form = undefined,
+            // .timer_feeding_form = undefined,
+            // .historic_feeding_form = undefined,
             .audio = Audio.init(.{ .allocator = props.allocator }),
         };
         const font_file_path_slice = sliceToZSlice(props.allocator, self.font_file_path) catch @panic("Failed to convert font file path to Z slice");
@@ -68,8 +68,8 @@ pub const UI = struct {
         self.home_screen = HomeScreen.init(.{ .font = font, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
 
         self.info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font, .feeding = props.feeding, .audio = &self.audio });
-        self.timer_feeding_form = TimerFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(20, 220), .feeding = props.feeding, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
-        self.historic_feeding_form = HistoricFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(320, 220), .feeding = props.feeding, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
+        // self.timer_feeding_form = TimerFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(20, 220), .feeding = props.feeding, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
+        // self.historic_feeding_form = HistoricFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(320, 220), .feeding = props.feeding, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
     }
 
     fn load(self: *UI) void {
@@ -88,7 +88,7 @@ pub const UI = struct {
     pub fn update(self: *UI) void {
         self.info_banner.update();
         self.home_screen.update();
-        self.timer_feeding_form.update();
-        self.historic_feeding_form.update();
+        // self.timer_feeding_form.update();
+        // self.historic_feeding_form.update();
     }
 };

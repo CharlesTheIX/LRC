@@ -58,7 +58,7 @@ pub const TimerFeedingForm = struct {
         const spacing: f32 = 40;
         var pos = props.position;
         const field_width: f32 = 200;
-        const notes_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Notes", .allocator = props.allocator, .layout_rect = props.layout_rect });
+        const notes_input = TextInput.init(.{ .font = props.font, .font_size = 16, .width = field_width, .bg_color = rl.Color.white, .txt_color = rl.Color.black, .border_color = rl.Color.gray, .placeholder = "Notes", .allocator = props.allocator, .layout_rect = rl.Rectangle.init(pos.x, pos.y, field_width, 0) });
         pos.y += spacing;
         const feeding_type_dropdown = Dropdown.init(.{
             .font_size = 16,
