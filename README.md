@@ -164,6 +164,9 @@ build.zig            # Zig build script — defines modules, executable, and bui
 build.zig.zon         # Package manifest — name, version, dependencies
 assets/
   fonts/              # Fonts bundled with the app (e.g. JetBrains Mono)
+  audio/
+    music/            # Background music tracks
+    sfx/               # Short sound effects (e.g. click)
 src/
   main.zig            # Entry point — parses the sub-command and dispatches
   root.zig            # Shared "app" module (Command enum, help text)
@@ -176,7 +179,14 @@ src/
       timer.zig       # Timer utilities
       utils.zig       # Shared filesystem helpers
       feeding/        # Feeding data model, file parsing, and formatting (.lrc_database/feeding.z)
-      ui/             # raylib-based UI (root UI, button, info banner, feeding data card, screens/)
+      ui/             # raylib-based UI
+        root.zig        # Root UI component — window/audio device setup, draw/update loop
+        button.zig      # Button component
+        dropdown.zig    # Dropdown component
+        feeding-data-card.zig # Feeding data card component
+        audio/          # Audio component — load/unload and play/stop/pause music & sound effects
+        info_banner/    # Info banner component (root + draw helpers)
+        screens/        # Screen-level components (e.g. home screen)
   udp/
     root.zig          # Standalone UDP server component
 ```
