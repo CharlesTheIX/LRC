@@ -5,7 +5,8 @@ const Audio = @import("./audio/root.zig").Audio;
 const Feeding = @import("../feeding/root.zig").Feeding;
 const HomeScreen = @import("./screens/home.zig").HomeScreen;
 const InfoBanner = @import("./info_banner/root.zig").InfoBanner;
-const FeedingForm = @import("./feeding_form/root.zig").FeedingForm;
+const TimerFeedingForm = @import("./feeding_form/root.zig").TimerFeedingForm;
+const HistoricFeedingForm = @import("./feeding_form/root.zig").HistoricFeedingForm;
 
 const Props = struct { allocator: *std.mem.Allocator, feeding: *Feeding };
 
@@ -15,14 +16,16 @@ pub const UI = struct {
     feeding: *Feeding,
     home_screen: HomeScreen,
     info_banner: InfoBanner,
-    feeding_form: FeedingForm,
+    timer_feeding_form: TimerFeedingForm,
+    historic_feeding_form: HistoricFeedingForm,
     allocator: *std.mem.Allocator,
 
     pub fn deinit(self: *UI) void {
         self.audio.deinit();
         self.home_screen.deinit();
         self.info_banner.deinit();
-        self.feeding_form.deinit();
+        self.timer_feeding_form.deinit();
+        self.historic_feeding_form.deinit();
         rl.unloadFont(self.font);
         rl.closeAudioDevice();
     }
@@ -32,7 +35,8 @@ pub const UI = struct {
         rl.beginDrawing();
         rl.clearBackground(rl.Color.black);
         self.info_banner.draw(&draw_position);
-        self.feeding_form.draw();
+        self.timer_feeding_form.draw();
+        self.historic_feeding_form.draw();
         rl.endDrawing();
     }
 
@@ -48,13 +52,15 @@ pub const UI = struct {
             .font = font,
             .feeding = props.feeding,
             .info_banner = undefined,
-            .feeding_form = undefined,
+            .timer_feeding_form = undefined,
+            .historic_feeding_form = undefined,
             .allocator = props.allocator,
             .home_screen = HomeScreen.init(),
             .audio = Audio.init(.{ .allocator = props.allocator }),
         };
         self.info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font, .feeding = props.feeding, .audio = &self.audio });
-        self.feeding_form = FeedingForm.init(.{ .font = font, .position = rl.Vector2.init(20, 220), .feeding = props.feeding, .allocator = props.allocator });
+        self.timer_feeding_form = TimerFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(20, 220), .feeding = props.feeding, .allocator = props.allocator });
+        self.historic_feeding_form = HistoricFeedingForm.init(.{ .font = font, .position = rl.Vector2.init(320, 220), .feeding = props.feeding, .allocator = props.allocator });
     }
 
     fn load(self: *UI) void {
@@ -73,6 +79,7 @@ pub const UI = struct {
     pub fn update(self: *UI) void {
         self.info_banner.update();
         self.home_screen.update();
-        self.feeding_form.update();
+        self.timer_feeding_form.update();
+        self.historic_feeding_form.update();
     }
 };
