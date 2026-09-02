@@ -15,6 +15,7 @@ pub fn main(init: std.process.Init) void {
     var stdout_buffer: [1024]u8 = undefined;
     var stdout_file_writer: std.Io.File.Writer = .init(.stdout(), io, &stdout_buffer);
     const stdout_writer = &stdout_file_writer.interface;
+    defer stdout_file_writer.flush() catch @panic("Failed to flush stdout");
 
     // Set up stdin reader
     var stdin_buffer: [1024]u8 = undefined;

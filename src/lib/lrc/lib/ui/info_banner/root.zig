@@ -4,12 +4,12 @@ const utils = @import("./utils.zig");
 const Button = @import("../button.zig").Button;
 const Audio = @import("../audio/root.zig").Audio;
 const Timer = @import("../../timer/root.zig").Timer;
-const Feeding = @import("../../feeding/root.zig").Feeding;
+const BabyData = @import("../../baby_data/root.zig").BabyData;
 const DateTime = @import("../../date_time/root.zig").DateTime;
 const SelectInput = @import("../inputs/select_input.zig").SelectInput;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
-const Props = struct { font: rl.Font, allocator: *std.mem.Allocator, feeding: *Feeding, audio: *Audio };
+const Props = struct { font: rl.Font, allocator: *std.mem.Allocator, baby_data: *BabyData, audio: *Audio };
 
 pub const InfoBanner = struct {
     timer: Timer,
@@ -18,15 +18,16 @@ pub const InfoBanner = struct {
     button: Button,
     select: SelectInput,
     font_size: f32 = 16,
-    last_feed: ?DateTime,
-    next_feed_min: ?DateTime,
-    next_feed_max: ?DateTime,
+    // last_feed: ?DateTime,
+    // next_feed_min: ?DateTime,
+    // next_feed_max: ?DateTime,
     timer_started: bool = false,
     allocator: *std.mem.Allocator,
     padding: rl.Vector2 = rl.Vector2.init(8, 8),
 
     pub fn deinit(self: *InfoBanner) void {
         self.timer.deinit();
+        self.button.deinit();
         self.select.deinit();
     }
 
@@ -51,11 +52,12 @@ pub const InfoBanner = struct {
     }
 
     pub fn init(props: Props) InfoBanner {
-        const last_feed = props.feeding.getLastFeedingDateTime();
-        const next_feed_min = if (last_feed) |lf| lf.addSeconds(@as(i64, @intCast(60 * 60 * 2))) else null;
-        const next_feed_max = if (last_feed) |lf| lf.addSeconds(@as(i64, @intCast(60 * 60 * 3))) else null;
-        const diff_secs = if (next_feed_max) |nfm| nfm.getDiffSeconds(DateTime.now().addSeconds(6 * 1200)) else 0;
-        const timer_target_time = @as(f64, @floatFromInt(diff_secs));
+        // const last_feed = props.feeding.getLastFeedingDateTime();
+        // const next_feed_min = if (last_feed) |lf| lf.addSeconds(@as(i64, @intCast(60 * 60 * 2))) else null;
+        // const next_feed_max = if (last_feed) |lf| lf.addSeconds(@as(i64, @intCast(60 * 60 * 3))) else null;
+        // const diff_secs = if (next_feed_max) |nfm| nfm.getDiffSeconds(DateTime.now().addSeconds(6 * 1200)) else 0;
+        // const timer_target_time = @as(f64, @floatFromInt(diff_secs));
+        const timer_target_time = 1000;
         const timer = Timer.init(.{ .timer_type = .Countdown, .allocator = props.allocator, .target_time = timer_target_time, .continue_on_finish = true });
         const select = SelectInput.init(.{
             .font_size = 18,
@@ -79,15 +81,15 @@ pub const InfoBanner = struct {
             .position = rl.Vector2.init(10, 50),
         });
         return InfoBanner{
-            .font = props.font,
             .timer = timer,
             .button = button,
+            .font = props.font,
             .audio = props.audio,
             .select = select,
-            .last_feed = last_feed,
             .allocator = props.allocator,
-            .next_feed_min = next_feed_min,
-            .next_feed_max = next_feed_max,
+            // .last_feed = last_feed,
+            // .next_feed_min = next_feed_min,
+            // .next_feed_max = next_feed_max,
         };
     }
 

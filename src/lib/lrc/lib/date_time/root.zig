@@ -147,7 +147,7 @@ pub const DateTime = struct {
     pub fn toIsoString(self: DateTime, allocator: *std.mem.Allocator) ![]u8 {
         return std.fmt.allocPrint(
             allocator.*,
-            "{d:0>4}-{d:0>2}-{d:0>2}T{d:0>2}:{d:0>2}:{d:0>2}Z",
+            "{d:0>4}-{d:0>2}-{d:0>2}T{d:0>2}:{d:0>2}:{d:0>2}",
             .{ self.getFullYear(), self.getMonth(), self.getDate(), self.getHours(), self.getMinutes(), self.getSeconds() },
         );
     }
