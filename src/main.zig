@@ -45,7 +45,7 @@ pub fn main(init: std.process.Init) void {
             return lrc_app.run();
         },
         .UDP_SERVER => {
-            var udp_server = udp.UdpServer.init(.{ .io = &io });
+            var udp_server = udp.UdpServer.init(.{ .io = &io, .writer = stdout_writer, .args_it = &args_it });
             defer udp_server.deinit();
             return udp_server.run();
         },
