@@ -1,6 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
-const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
+const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 const Props = struct {
     font: rl.Font,
@@ -61,7 +61,7 @@ pub const SelectInput = struct {
         const font_height = @as(f32, @floatFromInt(props.font_size));
         const item_height = font_height + (2 * padding.y);
         for (props.options) |option| {
-            const label_z = sliceToZSlice(props.allocator, option) catch "Failed to convert label string to Z slice";
+            const label_z = sliceToZSlice(props.allocator, option) catch continue;
             defer props.allocator.free(label_z);
             const label_width = @as(f32, @floatFromInt(rl.measureText(label_z, props.font_size)));
             if (label_width > max_label_width) max_label_width = label_width;
@@ -176,7 +176,7 @@ pub const SelectInput = struct {
         rl.drawRectangleRec(rect, bg_color);
         const border_width: f32 = if (rect.y == self.rect.y and self.focused) 2 else 1;
         rl.drawRectangleLinesEx(rect, border_width, self.border_color);
-        const label_z = sliceToZSlice(self.allocator, label) catch "Failed to convert label string to Z slice";
+        const label_z = sliceToZSlice(self.allocator, label) catch return;
         defer self.allocator.free(label_z);
         rl.drawTextEx(self.font, label_z, .init(rect.x + self.padding.x, rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), 3, self.txt_color);
     }

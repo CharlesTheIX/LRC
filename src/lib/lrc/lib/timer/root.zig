@@ -1,7 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("./utils.zig");
-const sliceToZSlice = @import("./utils.zig").sliceToZSlice;
 
 const Props = struct { timer_type: utils.TimerType, target_time: ?f64 = null, allocator: *std.mem.Allocator, continue_on_finish: bool = false };
 

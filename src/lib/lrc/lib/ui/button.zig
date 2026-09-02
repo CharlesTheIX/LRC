@@ -1,6 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
-const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
+const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
 const Props = struct { font: rl.Font, font_size: i32, label: []const u8, bg_color: rl.Color, txt_color: rl.Color, position: rl.Vector2, callback: ?*const fn () void, allocator: *std.mem.Allocator };
 
@@ -24,13 +24,13 @@ pub const Button = struct {
     pub fn draw(self: *Button) void {
         if (!self.visible) return;
         rl.drawRectangleRec(self.rect, self.bg_color);
-        const label_z = sliceToZSlice(self.allocator, self.label) catch "Failed to convert label string to Z slice";
+        const label_z = sliceToZSlice(self.allocator, self.label) catch return;
         defer self.allocator.free(label_z);
         rl.drawTextEx(self.font, label_z, .init(self.rect.x + self.padding.x, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), 3, self.txt_color);
     }
 
     pub fn init(props: Props) Button {
-        const label_z = sliceToZSlice(props.allocator, props.label) catch "Failed to convert label string to Z slice";
+        const label_z = sliceToZSlice(props.allocator, props.label) catch @panic("Failed to convert label string to Z slice");
         defer props.allocator.free(label_z);
         const padding = rl.Vector2.init(10, 5);
         const label_width = @as(f32, @floatFromInt(rl.measureText(label_z, props.font_size)));

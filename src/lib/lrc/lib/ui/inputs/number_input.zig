@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("./utils.zig");
-const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
+const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 const spinner_width = 18;
 
@@ -56,7 +56,7 @@ pub const NumberInput = struct {
         const visible_width = self.rect.width - (2 * padding.x) - spinner_width;
         if (self.len > 0) self.updateScroll(visible_width) else self.scroll_offset = 0;
         const text = if (self.len > 0) self.getValueText() else self.placeholder;
-        const text_z = sliceToZSlice(self.allocator, text) catch "Failed to convert text to Z slice";
+        const text_z = sliceToZSlice(self.allocator, text) catch return;
         defer self.allocator.free(text_z);
         rl.beginScissorMode(@intFromFloat(self.rect.x), @intFromFloat(self.rect.y), @intFromFloat(self.rect.width - spinner_width), @intFromFloat(self.rect.height));
         rl.drawTextEx(self.font, text_z, .init(self.rect.x + padding.x - self.scroll_offset, self.rect.y + padding.y), @as(f32, @floatFromInt(self.font_size)), utils.char_spacing, self.txt_color);

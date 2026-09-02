@@ -1,6 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
-const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
+const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 const Props = struct { allocator: *std.mem.Allocator };
 

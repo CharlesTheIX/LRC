@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("./utils.zig");
-const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
+const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 const Props = struct {
     width: f32,
@@ -47,7 +47,7 @@ pub const TextAreaInput = struct {
         const padding = rl.Vector2.init(8, 6);
         self.updateScroll();
         const text = if (self.len > 0) self.getValue() else self.placeholder;
-        const text_z = sliceToZSlice(self.allocator, text) catch "Failed to convert text to Z slice";
+        const text_z = sliceToZSlice(self.allocator, text) catch return;
         defer self.allocator.free(text_z);
         rl.beginScissorMode(@intFromFloat(self.rect.x), @intFromFloat(self.rect.y), @intFromFloat(self.rect.width), @intFromFloat(self.rect.height));
         rl.drawTextEx(self.font, text_z, .init(self.rect.x + padding.x, self.rect.y + padding.y - self.scroll_offset), @as(f32, @floatFromInt(self.font_size)), utils.char_spacing, self.txt_color);

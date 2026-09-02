@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const InfoBanner = @import("./root.zig").InfoBanner;
-const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
+const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 pub fn drawAppName(info_banner: *InfoBanner, draw_position: *rl.Vector2) void {
     const app_name = "BABY TRACKER!";

@@ -186,13 +186,13 @@ src/
   lib/
     lrc/
       root.zig        # Lea Rose Charles tracker core
+      utils.zig       # Shared io helpers (file/dir create, read, write, Z-slice conversion)
       lib/
-        config.zig    # Config helper (not initialized by the app yet)
-        database.zig  # Database-directory helper (not initialized by the app yet)
+        baby_data/    # Body + feeding item models, parsing, and file-backed persistence
+        config/       # Config helper (not initialized by the app yet)
         date_time/    # Date/time utilities
         timer/        # Timer utilities
-        feeding/      # Feeding model and persistence
-        ui/           # raylib UI, including text, number, select, and textarea inputs
+        ui/           # raylib UI: screens, text/number/select/textarea inputs, buttons, audio
     http/
       root.zig        # Standalone HTTP server
     udp/
@@ -201,13 +201,18 @@ src/
 
 ## 💾 Configuration & Data Storage
 
-The `lrc` command reads and writes Lea Rose Charles's feeding data relative to your home directory (`$HOME`), not the directory from which the binary is run. Before the first run, create its data directory:
+The `lrc` command reads and writes Lea Rose Charles's data relative to your home directory (`$HOME`), not the directory from which the binary is run. Before the first run, create its data directory:
 
 ```sh
 mkdir -p ~/.lrc_database
 ```
 
-On first launch, LRC creates `~/.lrc_database/feeding.z` with a format header. That file stores feeding records; the data model also supports other daily care information. The configuration helper exists but is not currently initialized by the application, so no `.lrc_config` file is created.
+On first launch, LRC creates two files under `~/.lrc_database/`:
+
+- `body_items.z` — body-related records (urinations, defecations, weight, notes) with a format header.
+- `feeding_items.z` — feeding records (duration, type, feeder, amount, notes) with a format header.
+
+The configuration helper exists but is not currently initialized by the application, so no `.lrc_config` file is created.
 
 ## 📦 Dependencies
 

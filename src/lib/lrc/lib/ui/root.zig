@@ -1,15 +1,14 @@
 const std = @import("std");
 const rl = @import("raylib");
-const utils = @import("../feeding/utils.zig");
 const Audio = @import("./audio/root.zig").Audio;
 const BabyData = @import("../baby_data/root.zig").BabyData;
 const HomeScreen = @import("./screens/home.zig").HomeScreen;
 const InfoBanner = @import("./info_banner/root.zig").InfoBanner;
-const sliceToZSlice = @import("../utils.zig").sliceToZSlice;
+const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
 const Props = struct {
-    allocator: *std.mem.Allocator,
     baby_data: *BabyData,
+    allocator: *std.mem.Allocator,
     font_file_path: []const u8 = "./assets/fonts/JetBrains.ttf",
 };
 
@@ -48,8 +47,8 @@ pub const UI = struct {
         rl.initAudioDevice();
         rl.maximizeWindow();
 
-        const font_file_path_slice = sliceToZSlice(props.allocator, self.font_file_path) catch @panic("Failed to convert font file path to Z slice");
-        const font = rl.loadFontEx(self.font, 16, null) catch @panic("Failed to load font");
+        const font_file_path_slice = sliceToZSlice(props.allocator, props.font_file_path) catch @panic("Failed to convert font file path to Z slice");
+        const font = rl.loadFontEx(font_file_path_slice, 16, null) catch @panic("Failed to load font");
         self.* = UI{
             .font = font,
             .home_screen = undefined,
@@ -62,7 +61,7 @@ pub const UI = struct {
 
         const home_screen_layout_rect = rl.Rectangle.init(0, 0, @as(f32, @floatFromInt(rl.getScreenWidth())), @as(f32, @floatFromInt(rl.getScreenHeight())));
         self.home_screen = HomeScreen.init(.{ .font = font, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
-        self.info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font, .feeding = props.feeding, .audio = &self.audio });
+        self.info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font, .baby_data = props.baby_data, .audio = &self.audio });
     }
 
     fn load(self: *UI) void {

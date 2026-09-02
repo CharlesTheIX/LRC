@@ -1,7 +1,7 @@
 const std = @import("std");
-const createFile = @import("utils.zig").createFile;
-const readFile = @import("utils.zig").readFile;
-const writeFile = @import("utils.zig").writeFile;
+const createFile = @import("../../utils.zig").createFile;
+const readFile = @import("../../utils.zig").readFile;
+const writeFile = @import("../../utils.zig").writeFile;
 
 const Props = struct { io: *std.Io, env_map: *std.process.Environ.Map, allocator: *std.mem.Allocator, args_it: *std.process.Args.Iterator };
 
