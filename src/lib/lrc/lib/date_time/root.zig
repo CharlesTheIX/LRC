@@ -2,11 +2,31 @@ const std = @import("std");
 const epoch = std.time.epoch;
 const Month = @import("utils.zig").Month;
 
-const Props = struct { year: epoch.Year, month: u4, day: u5, hour: u5 = 0, minute: u6 = 0, second: u6 = 0 };
+const Props = struct {
+    day: u5,
+    month: u4,
+    hour: u5 = 0,
+    minute: u6 = 0,
+    second: u6 = 0,
+    year: epoch.Year,
+};
 
 pub const DateTime = struct {
     unix_seconds: i64,
 
+    // Base methods
+    pub fn init(props: Props) DateTime {
+        var days: i64 = 0;
+        var year: epoch.Year = epoch.epoch_year;
+        while (year < props.year) : (year += 1) days += epoch.getDaysInYear(year);
+        var month: u4 = 1;
+        while (month < props.month) : (month += 1) days += epoch.getDaysInMonth(props.year, @enumFromInt(month));
+        days += props.day - 1;
+        const seconds = days * epoch.secs_per_day + @as(i64, props.hour) * 3600 + @as(i64, props.minute) * 60 + @as(i64, props.second);
+        return .{ .unix_seconds = seconds };
+    }
+
+    // Helper methods
     pub fn addDays(self: DateTime, days: i64) DateTime {
         return self.addSeconds(days * epoch.secs_per_day);
     }
@@ -91,20 +111,6 @@ pub const DateTime = struct {
 
     pub fn getTime(self: DateTime) i64 {
         return self.unix_seconds;
-    }
-
-    pub fn init(props: Props) DateTime {
-        var days: i64 = 0;
-        var year: epoch.Year = epoch.epoch_year;
-        while (year < props.year) : (year += 1) days += epoch.getDaysInYear(year);
-        var month: u4 = 1;
-        while (month < props.month) : (month += 1) days += epoch.getDaysInMonth(props.year, @enumFromInt(month));
-        days += props.day - 1;
-        const seconds = days * epoch.secs_per_day +
-            @as(i64, props.hour) * 3600 +
-            @as(i64, props.minute) * 60 +
-            @as(i64, props.second);
-        return .{ .unix_seconds = seconds };
     }
 
     pub fn initFromEpochSeconds(unix_seconds: i64) DateTime {

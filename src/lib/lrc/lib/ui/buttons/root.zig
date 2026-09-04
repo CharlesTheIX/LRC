@@ -1,6 +1,5 @@
 const std = @import("std");
 const rl = @import("raylib");
-const utils = @import("./utils.zig");
 const ui_utils = @import("../utils.zig");
 const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
@@ -94,7 +93,7 @@ pub const Button = struct {
         const txt_color = if (self.focused) self.focused_txt_color else self.txt_color;
         const text_z = sliceToZSlice(self.allocator, text) catch return;
         defer self.allocator.free(text_z);
-        rl.drawTextEx(self.font, text_z, .init(self.rect.x + self.padding.x, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), utils.getCharSpacing(self.font_size), txt_color);
+        rl.drawTextEx(self.font, text_z, .init(self.rect.x + self.padding.x, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), ui_utils.getCharSpacing(self.font_size), txt_color);
     }
 
     fn onClick(self: *Button) void {

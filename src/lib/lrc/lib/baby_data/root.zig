@@ -1,6 +1,5 @@
 const std = @import("std");
 const utils = @import("./utils.zig");
-const DateTime = @import("../date_time/root.zig").DateTime;
 const createFile = @import("../../utils.zig").createFile;
 const readFile = @import("../../utils.zig").readFile;
 const writeFile = @import("../../utils.zig").writeFile;
@@ -26,6 +25,36 @@ pub const BabyData = struct {
     feeding_items: ?[]utils.FeedingItem,
     feeding_items_file_path: [:0]const u8,
 
+    // Base methods
+    pub fn deinit(self: *BabyData) void {
+        self.arena.deinit();
+        self.allocator.free(self.body_items_file_path);
+        self.allocator.free(self.feeding_items_file_path);
+    }
+
+    pub fn init(props: Props) BabyData {
+        const body_items_file_path = sliceToZSlice(props.allocator, props.body_items_file_path) catch @panic("Failed to convert feeding items file path to Z slice");
+        const feeding_items_file_path = sliceToZSlice(props.allocator, props.feeding_items_file_path) catch @panic("Failed to convert feeding items file path to Z slice");
+        var baby_data = BabyData{
+            .io = props.io,
+            .env_map = props.env_map,
+            .allocator = props.allocator,
+            .body_items = props.body_items,
+            .feeding_items = props.feeding_items,
+            .body_items_file_path = body_items_file_path,
+            .feeding_items_file_path = feeding_items_file_path,
+            .arena = std.heap.ArenaAllocator.init(props.allocator.*),
+        };
+        baby_data.load();
+        return baby_data;
+    }
+
+    pub fn load(self: *BabyData) void {
+        self.loadBodyData();
+        self.loadFeedingData();
+    }
+
+    // Helper methods
     pub fn addBodyItem(self: *BabyData, item: utils.BodyItem, overwrite: bool) void {
         const arena = self.arena.allocator();
         if (self.body_items) |items| {
@@ -70,10 +99,36 @@ pub const BabyData = struct {
         utils.saveFeedingItems(self);
     }
 
-    pub fn deinit(self: *BabyData) void {
-        self.arena.deinit();
-        self.allocator.free(self.body_items_file_path);
-        self.allocator.free(self.feeding_items_file_path);
+    fn extractBodyDataFromContent(self: *BabyData, content: []const u8) void {
+        var index: usize = 0;
+        var entries: std.ArrayList(utils.BodyItem) = .empty;
+        const arena = self.arena.allocator();
+        var line_it = std.mem.splitSequence(u8, content, "\n");
+        while (line_it.next()) |line| {
+            if (line.len == 0) continue;
+            if (line[0] == '#') continue;
+            var entry = utils.BodyItem.fromSlice(line);
+            entry.index = index;
+            entries.append(arena, entry) catch continue;
+            index += 1;
+        }
+        self.body_items = entries.toOwnedSlice(arena) catch @panic("Failed to convert body items to owned slice");
+    }
+
+    fn extractFeedingDataFromContent(self: *BabyData, content: []const u8) void {
+        var index: usize = 0;
+        var entries: std.ArrayList(utils.FeedingItem) = .empty;
+        const arena = self.arena.allocator();
+        var line_it = std.mem.splitSequence(u8, content, "\n");
+        while (line_it.next()) |line| {
+            if (line.len == 0) continue;
+            if (line[0] == '#') continue;
+            var entry = utils.FeedingItem.fromSlice(line);
+            entry.index = index;
+            entries.append(arena, entry) catch continue;
+            index += 1;
+        }
+        self.feeding_items = entries.toOwnedSlice(arena) catch @panic("Failed to convert feeding items to owned slice");
     }
 
     pub fn getBodyItemByIndex(self: *BabyData, index: usize) ?[]utils.BodyItem {
@@ -124,26 +179,34 @@ pub const BabyData = struct {
         return matching_items.toOwnedSlice(arena) catch @panic("Failed to convert matching feeding items to owned slice");
     }
 
-    pub fn init(props: Props) BabyData {
-        const body_items_file_path = sliceToZSlice(props.allocator, props.body_items_file_path) catch @panic("Failed to convert feeding items file path to Z slice");
-        const feeding_items_file_path = sliceToZSlice(props.allocator, props.feeding_items_file_path) catch @panic("Failed to convert feeding items file path to Z slice");
-        var baby_data = BabyData{
-            .io = props.io,
-            .env_map = props.env_map,
-            .allocator = props.allocator,
-            .body_items = props.body_items,
-            .feeding_items = props.feeding_items,
-            .body_items_file_path = body_items_file_path,
-            .feeding_items_file_path = feeding_items_file_path,
-            .arena = std.heap.ArenaAllocator.init(props.allocator.*),
+    fn loadBodyData(self: *BabyData) void {
+        var body_file_exists = false;
+        createFile(self.io, self.env_map, self.body_items_file_path) catch |err| switch (err) {
+            error.PathAlreadyExists => body_file_exists = true,
+            else => @panic("Failed to create body items data file"),
         };
-        baby_data.load();
-        return baby_data;
+        if (!body_file_exists) {
+            const example_content = "# FORMAT: date_time=2026-09-02T00:00:00;urinations=6;defecations=6;weight_kg=3.5;notes=N/A\n";
+            writeFile(self.io, self.env_map, self.body_items_file_path, example_content) catch @panic("Failed to write initial body items data file");
+        }
+        var arena_allocator = self.arena.allocator();
+        const body_content = readFile(self.io, self.env_map, &arena_allocator, self.body_items_file_path) catch @panic("Failed to read body items data file");
+        extractBodyDataFromContent(self, body_content);
     }
 
-    pub fn load(self: *BabyData) void {
-        utils.loadBodyData(self);
-        utils.loadFeedingData(self);
+    fn loadFeedingData(self: *BabyData) void {
+        var feeding_file_exists = false;
+        createFile(self.io, self.env_map, self.feeding_items_file_path) catch |err| switch (err) {
+            error.PathAlreadyExists => feeding_file_exists = true,
+            else => @panic("Failed to create feeding items data file"),
+        };
+        if (!feeding_file_exists) {
+            const example_content = "# FORMAT: date_time=2026-09-02T00:00:00;duration_sec=30;type=breast;feeder=Pavla;notes=N/A\n";
+            writeFile(self.io, self.env_map, self.feeding_items_file_path, example_content) catch @panic("Failed to write initial feeding items data file");
+        }
+        var arena_allocator = self.arena.allocator();
+        const feeding_content = readFile(self.io, self.env_map, &arena_allocator, self.feeding_items_file_path) catch @panic("Failed to read feeding items data file");
+        extractFeedingDataFromContent(self, feeding_content);
     }
 
     pub fn logData(self: *BabyData) void {
@@ -154,6 +217,132 @@ pub const BabyData = struct {
         if (self.body_items) |items| for (items) |item| std.debug.print("{any}\n", .{item});
         std.debug.print("Feeding items:\n", .{});
         if (self.feeding_items) |items| for (items) |item| std.debug.print("{any}\n", .{item});
+    }
+
+    fn mergeBodyItemsFromDisk(self: *BabyData) void {
+        var arena_allocator = self.arena.allocator();
+        const disk_content = readFile(self.io, self.env_map, &arena_allocator, self.body_items_file_path) catch return;
+        const arena = self.arena.allocator();
+        var merged: std.ArrayList(utils.BodyItem) = .empty;
+        if (self.body_items) |items| merged.appendSlice(arena, items) catch @panic("Failed to merge body items");
+        var line_it = std.mem.splitSequence(u8, disk_content, "\n");
+        while (line_it.next()) |line| {
+            if (line.len == 0) continue;
+            if (line[0] == '#') continue;
+            const disk_item = utils.BodyItem.fromSlice(line);
+            var already_known = false;
+            for (merged.items) |existing| {
+                if (self.sameBodyDateTime(existing, disk_item)) {
+                    already_known = true;
+                    break;
+                }
+            }
+            if (!already_known) merged.append(arena, disk_item) catch @panic("Failed to merge body items");
+        }
+        self.body_items = merged.toOwnedSlice(arena) catch @panic("Failed to convert body items to owned slice");
+    }
+
+    fn mergeFeedingItemsFromDisk(self: *BabyData) void {
+        var arena_allocator = self.arena.allocator();
+        const disk_content = readFile(self.io, self.env_map, &arena_allocator, self.feeding_items_file_path) catch return;
+        const arena = self.arena.allocator();
+        var merged: std.ArrayList(utils.FeedingItem) = .empty;
+        if (self.feeding_items) |items| merged.appendSlice(arena, items) catch @panic("Failed to merge feeding items");
+        var line_it = std.mem.splitSequence(u8, disk_content, "\n");
+        while (line_it.next()) |line| {
+            if (line.len == 0) continue;
+            if (line[0] == '#') continue;
+            const disk_item = utils.FeedingItem.fromSlice(line);
+            var already_known = false;
+            for (merged.items) |existing| {
+                if (self.sameFeedingDateTime(existing, disk_item)) {
+                    already_known = true;
+                    break;
+                }
+            }
+            if (!already_known) merged.append(arena, disk_item) catch @panic("Failed to merge feeding items");
+        }
+        self.feeding_items = merged.toOwnedSlice(arena) catch @panic("Failed to convert feeding items to owned slice");
+    }
+
+    fn sameBodyDateTime(self: *BabyData, a: utils.BodyItem, b: utils.BodyItem) bool {
+        const a_dt = a.date_time orelse return false;
+        const b_dt = b.date_time orelse return false;
+        const a_iso = a_dt.toIsoString(self.allocator) catch @panic("Failed to convert date_time to iso string");
+        defer self.allocator.free(a_iso);
+        const b_iso = b_dt.toIsoString(self.allocator) catch @panic("Failed to convert date_time to iso string");
+        defer self.allocator.free(b_iso);
+        return std.mem.eql(u8, a_iso, b_iso);
+    }
+
+    fn sameFeedingDateTime(self: *BabyData, a: utils.FeedingItem, b: utils.FeedingItem) bool {
+        const a_dt = a.date_time orelse return false;
+        const b_dt = b.date_time orelse return false;
+        const a_iso = a_dt.toIsoString(self.allocator) catch @panic("Failed to convert date_time to iso string");
+        defer self.allocator.free(a_iso);
+        const b_iso = b_dt.toIsoString(self.allocator) catch @panic("Failed to convert date_time to iso string");
+        defer self.allocator.free(b_iso);
+        return std.mem.eql(u8, a_iso, b_iso);
+    }
+
+    fn saveBodyItems(self: *BabyData) void {
+        self.mergeBodyItemsFromDisk();
+        sortBodyItemsByDateTime(self, true);
+        const arena = self.arena.allocator();
+        var content: std.ArrayList(u8) = .empty;
+        content.appendSlice(arena, "# FORMAT: date_time=2026-09-02T00:00:00;urinations=6;defecations=12;weight_kg=10;notes=N/A\n") catch @panic("Failed to build body items file content");
+        if (self.body_items) |items| {
+            for (items) |item| {
+                const line = item.toSlice(self.allocator) orelse continue;
+                defer self.allocator.free(line);
+                content.appendSlice(arena, line) catch @panic("Failed to build body items file content");
+                content.append(arena, '\n') catch @panic("Failed to build body items file content");
+            }
+        }
+        writeFile(self.io, self.env_map, self.body_items_file_path, content.items) catch @panic("Failed to write body items data file");
+    }
+
+    fn saveFeedingItems(self: *BabyData) void {
+        self.mergeFeedingItemsFromDisk();
+        sortFeedingItemsByDateTime(self, true);
+        const arena = self.arena.allocator();
+        var content: std.ArrayList(u8) = .empty;
+        content.appendSlice(arena, "# FORMAT: date_time=2026-09-02T00:00:00;duration_sec=30;type=breast;feeder=Pavla;notes=N/A\n") catch @panic("Failed to build feeding items file content");
+        if (self.feeding_items) |items| {
+            for (items) |item| {
+                const line = item.toSlice(self.allocator) orelse continue;
+                defer self.allocator.free(line);
+                content.appendSlice(arena, line) catch @panic("Failed to build feeding items file content");
+                content.append(arena, '\n') catch @panic("Failed to build feeding items file content");
+            }
+        }
+        writeFile(self.io, self.env_map, self.feeding_items_file_path, content.items) catch @panic("Failed to write feeding items data file");
+    }
+
+    fn sortBodyItemsByDateTime(self: *BabyData, ascending: bool) void {
+        if (self.body_items) |items| {
+            std.sort.heap(items, ascending, struct {
+                fn lessThan(is_ascending: bool, left: utils.BodyItem, right: utils.BodyItem) bool {
+                    if (left.date_time == null) return false;
+                    if (right.date_time == null) return true;
+                    if (is_ascending) return left.date_time.?.unix_seconds < right.date_time.?.unix_seconds;
+                    return left.date_time.?.unix_seconds > right.date_time.?.unix_seconds;
+                }
+            }.lessThan);
+        }
+    }
+
+    fn sortFeedingItemsByDateTime(self: *BabyData, ascending: bool) void {
+        if (self.feeding_items) |items| {
+            std.sort.heap(items, ascending, struct {
+                fn lessThan(is_ascending: bool, left: utils.FeedingItem, right: utils.FeedingItem) bool {
+                    if (left.date_time == null) return false;
+                    if (right.date_time == null) return true;
+                    if (is_ascending) return left.date_time.?.unix_seconds < right.date_time.?.unix_seconds;
+                    return left.date_time.?.unix_seconds > right.date_time.?.unix_seconds;
+                }
+            }.lessThan);
+        }
     }
 
     pub fn updateBodyItem(self: *BabyData, index: usize, new_item: utils.BodyItem) void {

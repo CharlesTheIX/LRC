@@ -1,11 +1,17 @@
 const std = @import("std");
 const rl = @import("raylib");
 const Button = @import("../buttons/root.zig").Button;
+const Feeder = @import("../../baby_data/utils.zig").Feeder;
 const TextInput = @import("../inputs/text_input.zig").TextInput;
+const FeedingType = @import("../../baby_data/utils.zig").FeedingType;
 const NumberInput = @import("../inputs/number_input.zig").NumberInput;
 const SelectInput = @import("../inputs/select_input.zig").SelectInput;
 
-const Props = struct { font: rl.Font, allocator: *std.mem.Allocator, font_size: u32 = 16 };
+const Props = struct {
+    font: rl.Font,
+    font_size: u32 = 16,
+    allocator: *std.mem.Allocator,
+};
 
 pub const TestScreen = struct {
     font: rl.Font,
@@ -108,37 +114,11 @@ pub const TestScreen = struct {
     }
 
     fn getFeederSelectInput(props: Props, draw_pos: *rl.Vector2) SelectInput {
-        return SelectInput.init(.{
-            .width = 200,
-            .font = props.font,
-            .draw_pos = draw_pos,
-            .label = "Feeder",
-            .bg_color = rl.Color.black,
-            .font_size = props.font_size,
-            .txt_color = rl.Color.white,
-            .border_color = rl.Color.green,
-            .id = "feeder_select_input",
-            .allocator = props.allocator,
-            .placeholder = "Select feeder...",
-            .options = &[_][]const u8{ "Feeder 1", "Feeder 2", "Feeder 3" },
-        });
+        return SelectInput.init(.{ .width = 200, .font = props.font, .draw_pos = draw_pos, .label = "Feeder", .bg_color = rl.Color.black, .font_size = props.font_size, .txt_color = rl.Color.white, .border_color = rl.Color.green, .id = "feeder_select_input", .allocator = props.allocator, .placeholder = "Select feeder...", .options = &[_][]const u8{ Feeder.David.toSlice(), Feeder.Pavla.toSlice(), Feeder.Other.toSlice() } });
     }
 
     fn getFeedingTypeSelectInput(props: Props, draw_pos: *rl.Vector2) SelectInput {
-        return SelectInput.init(.{
-            .width = 200,
-            .font = props.font,
-            .draw_pos = draw_pos,
-            .bg_color = rl.Color.black,
-            .font_size = props.font_size,
-            .txt_color = rl.Color.white,
-            .label = "Feeding Type",
-            .border_color = rl.Color.green,
-            .allocator = props.allocator,
-            .id = "feeding_type_select_input",
-            .placeholder = "Select feeding type...",
-            .options = &[_][]const u8{ "Type 1", "Type 2", "Type 3" },
-        });
+        return SelectInput.init(.{ .width = 200, .font = props.font, .draw_pos = draw_pos, .bg_color = rl.Color.black, .font_size = props.font_size, .txt_color = rl.Color.white, .label = "Feeding Type", .border_color = rl.Color.green, .allocator = props.allocator, .id = "feeding_type_select_input", .placeholder = "Select feeding type...", .options = &[_][]const u8{ FeedingType.Breast.toSlice(), FeedingType.BreastAndFormula.toSlice(), FeedingType.Formula.toSlice() } });
     }
 
     fn getSubmitButton(props: Props, draw_pos: *rl.Vector2) Button {
@@ -158,6 +138,10 @@ pub const TestScreen = struct {
         const amount_ml = self.amount_ml_input.getValue();
         const amount_ml_text = self.amount_ml_input.getValueText();
         const feeder = self.feeder_select_input.getValue();
-        std.debug.print("date: {s}, time: {s}, duration: {d}s, duration_text: {s} seconds, amount: {d}ml, amount_text: {s}, feeder: {s}\n", .{ date, time, duration_sec, duration_sec_text, amount_ml, amount_ml_text, feeder });
+        const feeding_type = self.feeding_type_select_input.getValue();
+        std.debug.print(
+            "date: {s}, time: {s}, duration: {d}s, duration_text: {s} seconds, amount: {d}ml, amount_text: {s}, feeder: {s}, feeding_type: {s}\n",
+            .{ date, time, duration_sec, duration_sec_text, amount_ml, amount_ml_text, feeder, feeding_type },
+        );
     }
 };

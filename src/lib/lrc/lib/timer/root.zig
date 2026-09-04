@@ -1,8 +1,12 @@
 const std = @import("std");
-const rl = @import("raylib");
 const utils = @import("./utils.zig");
 
-const Props = struct { timer_type: utils.TimerType, target_time: ?f64 = null, allocator: *std.mem.Allocator, continue_on_finish: bool = false };
+const Props = struct {
+    timer_type: utils.TimerType,
+    target_time: ?f64 = null,
+    allocator: *std.mem.Allocator,
+    continue_on_finish: bool = false,
+};
 
 pub const Timer = struct {
     paused: bool = false,
@@ -14,6 +18,7 @@ pub const Timer = struct {
     allocator: *std.mem.Allocator,
     continue_on_finish: bool = false,
 
+    // Base methods
     pub fn deinit(self: *Timer) void {
         _ = self;
     }
@@ -28,6 +33,35 @@ pub const Timer = struct {
         return timer;
     }
 
+    pub fn update(self: *Timer, delta_time: f64) void {
+        if (self.paused) return;
+        if (!self.running) return;
+        switch (self.timer_type) {
+            .Continuous => self.current_time += delta_time,
+            .CountUp => {
+                self.current_time += delta_time;
+                if (self.target_time) |target| {
+                    if (self.current_time >= target) {
+                        self.finished = true;
+                        if (self.continue_on_finish) return;
+                        self.current_time = target;
+                        self.stop();
+                    }
+                }
+            },
+            .Countdown => {
+                self.current_time -= delta_time;
+                if (self.current_time <= 0.0) {
+                    self.finished = true;
+                    if (self.continue_on_finish) return;
+                    self.current_time = 0.0;
+                    self.stop();
+                }
+            },
+        }
+    }
+
+    // Helper methods
     pub fn formatTime(self: *Timer, format: utils.TimerFormat, allocator: *std.mem.Allocator) []const u8 {
         const is_negative = self.current_time < 0.0;
         const sign = if (is_negative) "-" else "";
@@ -69,33 +103,5 @@ pub const Timer = struct {
 
     pub fn unpause(self: *Timer) void {
         if (self.paused) self.paused = false;
-    }
-
-    pub fn update(self: *Timer, delta_time: f64) void {
-        if (self.paused) return;
-        if (!self.running) return;
-        switch (self.timer_type) {
-            .Continuous => self.current_time += delta_time,
-            .CountUp => {
-                self.current_time += delta_time;
-                if (self.target_time) |target| {
-                    if (self.current_time >= target) {
-                        self.finished = true;
-                        if (self.continue_on_finish) return;
-                        self.current_time = target;
-                        self.stop();
-                    }
-                }
-            },
-            .Countdown => {
-                self.current_time -= delta_time;
-                if (self.current_time <= 0.0) {
-                    self.finished = true;
-                    if (self.continue_on_finish) return;
-                    self.current_time = 0.0;
-                    self.stop();
-                }
-            },
-        }
     }
 };

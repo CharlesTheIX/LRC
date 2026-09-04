@@ -6,8 +6,14 @@ const Timer = @import("../../timer/root.zig").Timer;
 const BabyData = @import("../../baby_data/root.zig").BabyData;
 const DateTime = @import("../../date_time/root.zig").DateTime;
 const SelectInput = @import("../inputs/select_input.zig").SelectInput;
+const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
-const Props = struct { font: rl.Font, allocator: *std.mem.Allocator, baby_data: *BabyData, audio: *Audio };
+const Props = struct {
+    font: rl.Font,
+    audio: *Audio,
+    baby_data: *BabyData,
+    allocator: *std.mem.Allocator,
+};
 
 pub const InfoBanner = struct {
     timer: Timer,
@@ -19,6 +25,7 @@ pub const InfoBanner = struct {
     allocator: *std.mem.Allocator,
     padding: rl.Vector2 = rl.Vector2.init(8, 8),
 
+    // Base methods
     pub fn deinit(self: *InfoBanner) void {
         self.timer.deinit();
         self.select.deinit();
@@ -58,13 +65,7 @@ pub const InfoBanner = struct {
             .position = rl.Vector2.init(20, 90),
             .options = &.{ "Pavla", "David", "Other" },
         });
-        return InfoBanner{
-            .timer = timer,
-            .font = props.font,
-            .audio = props.audio,
-            .select = select,
-            .allocator = props.allocator,
-        };
+        return InfoBanner{ .timer = timer, .font = props.font, .audio = props.audio, .select = select, .allocator = props.allocator };
     }
 
     pub fn load(self: *InfoBanner) void {
@@ -81,5 +82,77 @@ pub const InfoBanner = struct {
         if (self.timer.finished) {}
 
         if (rl.isMouseButtonDown(.left)) self.audio.playSfx("click");
+    }
+
+    // Helper methods
+    pub fn drawAppName(self: *InfoBanner, draw_position: *rl.Vector2) void {
+        const app_name = "BABY TRACKER!";
+        const app_name_slice = sliceToZSlice(self.allocator, app_name) catch @panic("Failed to convert app_name to zslice");
+        defer self.allocator.free(app_name_slice);
+        rl.drawTextEx(self.font, app_name_slice, draw_position.*, self.font_size, 2.0, rl.Color.white);
+    }
+
+    pub fn drawBackground(self: *InfoBanner, draw_position: *rl.Vector2) void {
+        const banner_height = self.padding.y * 5 + self.font_size * 4; // Adjust height based on padding and font size
+        const banner_rect = rl.Rectangle.init(draw_position.x, draw_position.y, @as(f32, @floatFromInt(rl.getScreenWidth())), banner_height);
+        rl.drawRectangleRec(banner_rect, rl.Color.dark_gray.alpha(0.3));
+    }
+
+    pub fn drawLastFeedingTime(self: *InfoBanner, draw_position: *rl.Vector2) void {
+        if (self.last_feed) |lf| {
+            var buffer: [128]u8 = undefined;
+            const last_feed_date = lf.toDateString(self.allocator) catch @panic("Failed to convert last feeding date time to date string");
+            defer self.allocator.free(last_feed_date);
+            const last_feed_time = lf.toTimeString(self.allocator) catch @panic("Failed to convert last feeding date time to time string");
+            defer self.allocator.free(last_feed_time);
+            const last_feeding_time_msg = std.fmt.bufPrint(&buffer, "Last feed: {s} {s}", .{ last_feed_date, last_feed_time }) catch @panic("Failed to format last feeding message");
+            const last_feeding_time_msg_slice = sliceToZSlice(self.allocator, last_feeding_time_msg) catch @panic("Failed to convert last_feeding_msg to zslice");
+            defer self.allocator.free(last_feeding_time_msg_slice);
+            rl.drawTextEx(self.font, last_feeding_time_msg_slice, draw_position.*, self.font_size, 2.0, rl.Color.white);
+        } else return drawNotFoundMessage(self, draw_position, self.font_size);
+    }
+
+    pub fn drawNextFeedingTime(self: *InfoBanner, draw_position: *rl.Vector2) void {
+        if (self.next_feed_min) |nf_min| {
+            if (self.next_feed_max) |nf_max| {
+                var buffer: [128]u8 = undefined;
+                const next_feed_max_date = nf_max.toDateString(self.allocator) catch @panic("Failed to convert next feeding max date time to date string");
+                defer self.allocator.free(next_feed_max_date);
+                const next_feed_max_time = nf_max.toTimeString(self.allocator) catch @panic("Failed to convert next feeding max date time to time string");
+                defer self.allocator.free(next_feed_max_time);
+                const next_feed_min_date = nf_min.toDateString(self.allocator) catch @panic("Failed to convert next feeding min date time to date string");
+                defer self.allocator.free(next_feed_min_date);
+                const next_feed_min_time = nf_min.toTimeString(self.allocator) catch @panic("Failed to convert next feeding min date time to time string");
+                defer self.allocator.free(next_feed_min_time);
+                const next_feeding_time_msg = std.fmt.bufPrint(&buffer, "Next feed (min / max): {s} {s} / {s} {s}", .{ next_feed_min_date, next_feed_min_time, next_feed_max_date, next_feed_max_time }) catch @panic("Failed to format next feeding message");
+                const next_feeding_time_msg_slice = sliceToZSlice(self.allocator, next_feeding_time_msg) catch @panic("Failed to convert next_feeding_time_msg to zslice");
+                defer self.allocator.free(next_feeding_time_msg_slice);
+                rl.drawTextEx(self.font, next_feeding_time_msg_slice, draw_position.*, self.font_size, 2.0, rl.Color.white);
+            } else return drawNotFoundMessage(self, draw_position, self.font_size);
+        } else return drawNotFoundMessage(self, draw_position, self.font_size);
+    }
+
+    fn drawNotFoundMessage(self: *InfoBanner, draw_position: *rl.Vector2, font_size: f32) void {
+        const not_found_str = "No feeding data available";
+        const not_found_width = @divFloor(rl.measureTextEx(self.font, not_found_str, font_size, 2.0).x, 2);
+        const window_centre_x = @as(f32, @floatFromInt(rl.getScreenWidth())) / 2;
+        const print_pos_x = window_centre_x - not_found_width;
+        draw_position.x = print_pos_x;
+        rl.drawTextEx(self.font, not_found_str, draw_position.*, font_size, 2.0, rl.Color.white);
+    }
+
+    pub fn drawTimer(self: *InfoBanner, draw_position: *rl.Vector2) void {
+        const timer_current_time_str = self.timer.formatTime(.HoursMinutesSeconds, self.allocator);
+        defer self.allocator.free(timer_current_time_str);
+        const timer_current_time_zstr = sliceToZSlice(self.allocator, timer_current_time_str) catch @panic("Failed to convert timer_current_time to zslice");
+        defer self.allocator.free(timer_current_time_zstr);
+        var timer_color = rl.Color.white;
+        if (self.next_feed_min) |nfm| {
+            if (self.timer.current_time >= @as(f64, @floatFromInt(nfm.unix_seconds))) timer_color = rl.Color.red;
+        }
+        if (self.next_feed_max) |nfm| {
+            if (self.timer.current_time >= @as(f64, @floatFromInt(nfm.unix_seconds)) + 30) timer_color = rl.Color.red;
+        }
+        rl.drawTextEx(self.font, timer_current_time_zstr, draw_position.*, self.font_size, 2.0, timer_color);
     }
 };

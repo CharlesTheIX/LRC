@@ -2,13 +2,16 @@ const std = @import("std");
 const rl = @import("raylib");
 const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
-const Props = struct { allocator: *std.mem.Allocator };
+const Props = struct {
+    allocator: *std.mem.Allocator,
+};
 
 pub const Audio = struct {
     allocator: *std.mem.Allocator,
     sfxs: std.StringHashMap(rl.Sound),
     music: std.StringHashMap(rl.Music),
 
+    // Base methods
     pub fn deinit(self: *Audio) void {
         var sfx_it = self.sfxs.iterator();
         while (sfx_it.next()) |entry| {
@@ -32,6 +35,12 @@ pub const Audio = struct {
         };
     }
 
+    pub fn update(self: *Audio) void {
+        var it = self.music.iterator();
+        while (it.next()) |entry| rl.updateMusicStream(entry.value_ptr.*);
+    }
+
+    // Helper methods
     pub fn loadMusic(self: *Audio, name: []const u8, file_path: []const u8) !void {
         if (self.music.contains(name)) return;
         const path_z = try sliceToZSlice(self.allocator, file_path);
@@ -102,10 +111,5 @@ pub const Audio = struct {
         const entry = self.sfxs.fetchRemove(name) orelse return;
         rl.unloadSound(entry.value);
         self.allocator.free(entry.key);
-    }
-
-    pub fn update(self: *Audio) void {
-        var it = self.music.iterator();
-        while (it.next()) |entry| rl.updateMusicStream(entry.value_ptr.*);
     }
 };

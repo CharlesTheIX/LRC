@@ -1,16 +1,23 @@
 const std = @import("std");
+const utils = @import("./utils.zig");
 const createFile = @import("../../utils.zig").createFile;
 const readFile = @import("../../utils.zig").readFile;
 const writeFile = @import("../../utils.zig").writeFile;
 
-const Props = struct { io: *std.Io, env_map: *std.process.Environ.Map, allocator: *std.mem.Allocator, args_it: *std.process.Args.Iterator };
+const Props = struct {
+    io: *std.Io,
+    allocator: *std.mem.Allocator,
+    env_map: *std.process.Environ.Map,
+    args_it: *std.process.Args.Iterator,
+};
 
 pub const Config = struct {
     io: *std.Io,
-    data: ConfigData = .{},
+    data: utils.ConfigData = .{},
     env_map: *std.process.Environ.Map,
     file_path: *const [11:0]u8 = ".lrc_config",
 
+    // Base methods
     pub fn deinit(self: *Config) void {
         _ = self;
     }
@@ -34,12 +41,9 @@ pub const Config = struct {
         return config;
     }
 
+    // Helper methods
     fn extractDataFromFile(self: *Config, content: []const u8) !void {
         _ = self;
         _ = content;
     }
-};
-
-const ConfigData = struct {
-    time_diff_from_utc: i32 = 0,
 };

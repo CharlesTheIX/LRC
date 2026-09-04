@@ -122,7 +122,7 @@ pub const NumberInput = struct {
             if (self.label_pos) |label_pos| {
                 const label_str = sliceToZSlice(self.allocator, label) catch @panic("Failed to convert label to Z slice");
                 defer self.allocator.free(label_str);
-                rl.drawTextEx(self.font, label_str, label_pos, @as(f32, @floatFromInt(self.font_size)), utils.getCharSpacing(self.font_size), self.txt_color);
+                rl.drawTextEx(self.font, label_str, label_pos, @as(f32, @floatFromInt(self.font_size)), ui_utils.getCharSpacing(self.font_size), self.txt_color);
             }
         }
     }
@@ -150,7 +150,7 @@ pub const NumberInput = struct {
         const text_z = sliceToZSlice(self.allocator, text) catch return;
         defer self.allocator.free(text_z);
         rl.beginScissorMode(@intFromFloat(self.rect.x), @intFromFloat(self.rect.y), @intFromFloat(self.rect.width - utils.spinner_width), @intFromFloat(self.rect.height));
-        rl.drawTextEx(self.font, text_z, .init(self.rect.x + self.padding.x - self.scroll_offset, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), utils.getCharSpacing(self.font_size), self.txt_color);
+        rl.drawTextEx(self.font, text_z, .init(self.rect.x + self.padding.x - self.scroll_offset, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), ui_utils.getCharSpacing(self.font_size), self.txt_color);
         rl.endScissorMode();
     }
 
@@ -158,7 +158,7 @@ pub const NumberInput = struct {
         if (text.len == 0) return 0;
         const text_z = sliceToZSlice(self.allocator, text) catch return 0;
         defer self.allocator.free(text_z);
-        return rl.measureTextEx(self.font, text_z, @as(f32, @floatFromInt(self.font_size)), utils.getCharSpacing(self.font_size)).x;
+        return rl.measureTextEx(self.font, text_z, @as(f32, @floatFromInt(self.font_size)), ui_utils.getCharSpacing(self.font_size)).x;
     }
 
     pub fn getValue(self: *NumberInput) f64 {
