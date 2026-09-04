@@ -1,6 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("./utils.zig");
+const ui_utils = @import("../utils.zig");
 const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 const Props = struct {
@@ -84,6 +85,10 @@ pub const TextInput = struct {
 
     pub fn update(self: *TextInput) void {
         if (!self.visible) return;
+        if (ui_utils.isBlockedByFocusedElement(self.id)) {
+            if (self.focused) self.focused = false;
+            return;
+        }
         self.updateFocus();
         if (!self.focused) return;
         self.updateCursorBlink();
@@ -216,9 +221,13 @@ pub const TextInput = struct {
             if (rl.isMouseButtonPressed(.left)) {
                 self.resetBlink();
                 self.focused = true;
+                ui_utils.claimFocus(self.id);
                 self.moveCursorToMouse(mouse_pos);
             }
-        } else if (rl.isMouseButtonPressed(.left)) self.focused = false;
+        } else if (rl.isMouseButtonPressed(.left)) {
+            self.focused = false;
+            if (ui_utils.hasFocus(self.id)) ui_utils.clearFocus();
+        }
     }
 
     fn updateScroll(self: *TextInput, visible_width: f32) void {

@@ -1,6 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("./utils.zig");
+const ui_utils = @import("../utils.zig");
 const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 const Props = struct {
@@ -97,6 +98,10 @@ pub const NumberInput = struct {
 
     pub fn update(self: *NumberInput) void {
         if (!self.visible) return;
+        if (ui_utils.isBlockedByFocusedElement(self.id)) {
+            if (self.focused) self.focused = false;
+            return;
+        }
         self.updateFocus();
         if (!self.focused) return;
         self.updateCursorBlink();
@@ -267,9 +272,9 @@ pub const NumberInput = struct {
                 rl.setMouseCursor(.pointing_hand);
                 if (rl.checkCollisionPointRec(mouse_pos, up_rect)) {} else {} // This can be used to visually indicate which part of the spinner is being hovered over at a later date
             } else rl.setMouseCursor(.ibeam);
-
             if (rl.isMouseButtonPressed(.left)) {
                 self.focused = true;
+                ui_utils.claimFocus(self.id);
                 if (rl.checkCollisionPointRec(mouse_pos, spinner_rect)) {
                     self.handleStep(if (rl.checkCollisionPointRec(mouse_pos, up_rect)) 1 else -1, null);
                 } else {
@@ -280,6 +285,7 @@ pub const NumberInput = struct {
         } else if (rl.isMouseButtonPressed(.left)) {
             self.focused = false;
             self.setValue(self.getValue());
+            if (ui_utils.hasFocus(self.id)) ui_utils.clearFocus();
         }
     }
 

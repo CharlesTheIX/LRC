@@ -1,6 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("./utils.zig");
+const ui_utils = @import("../utils.zig");
 const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 const Props = struct {
@@ -73,6 +74,10 @@ pub const Button = struct {
     }
 
     pub fn update(self: *Button) void {
+        if (ui_utils.isBlockedByFocusedElement(self.id)) {
+            if (self.focused) self.focused = false;
+            return;
+        }
         self.updateFocus();
     }
 
@@ -101,7 +106,13 @@ pub const Button = struct {
         if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
             self.focused = true;
             rl.setMouseCursor(.pointing_hand);
-            if (rl.isMouseButtonPressed(rl.MouseButton.left)) self.onClick();
-        } else self.focused = false;
+            if (rl.isMouseButtonPressed(rl.MouseButton.left)) {
+                self.onClick();
+                ui_utils.claimFocus(self.id);
+            }
+        } else {
+            self.focused = false;
+            if (rl.isMouseButtonPressed(rl.MouseButton.left) and ui_utils.hasFocus(self.id)) ui_utils.clearFocus();
+        }
     }
 };
