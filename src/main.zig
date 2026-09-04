@@ -1,7 +1,7 @@
 const std = @import("std");
+const app = @import("app");
 const lrc = @import("lrc");
 const udp = @import("udp");
-const app = @import("app");
 const http = @import("http");
 
 pub fn main(init: std.process.Init) void {
@@ -34,14 +34,7 @@ pub fn main(init: std.process.Init) void {
         .LRC => {
             // Init and run the application
             var lrc_app: lrc.LRC = undefined;
-            lrc_app.init(.{
-                .io = &io,
-                .env_map = env_map,
-                .args_it = &args_it,
-                .allocator = &arena,
-                .reader = stdin_reader,
-                .writer = stdout_writer,
-            });
+            lrc_app.init(.{ .io = &io, .env_map = env_map, .args_it = &args_it, .allocator = &arena, .reader = stdin_reader, .writer = stdout_writer });
             defer lrc_app.deinit();
             return lrc_app.run();
         },
