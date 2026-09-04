@@ -1,13 +1,10 @@
 const std = @import("std");
 const rl = @import("raylib");
 const Audio = @import("./audio/root.zig").Audio;
-const BabyData = @import("../baby_data/root.zig").BabyData;
-const HomeScreen = @import("./screens/home.zig").HomeScreen;
-const InfoBanner = @import("./info_banner/root.zig").InfoBanner;
+const TestScreen = @import("./screens/test.zig").TestScreen;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
 const Props = struct {
-    baby_data: *BabyData,
     allocator: *std.mem.Allocator,
     font_file_path: []const u8 = "./assets/fonts/JetBrains.ttf",
 };
@@ -15,27 +12,21 @@ const Props = struct {
 pub const UI = struct {
     audio: Audio,
     font: rl.Font,
-    baby_data: *BabyData,
-    home_screen: HomeScreen,
-    info_banner: InfoBanner,
+    test_screen: TestScreen,
     font_file_path: [:0]const u8,
     allocator: *std.mem.Allocator,
 
     pub fn deinit(self: *UI) void {
         self.audio.deinit();
-        self.home_screen.deinit();
-        self.info_banner.deinit();
         self.allocator.free(self.font_file_path);
         rl.unloadFont(self.font);
         rl.closeAudioDevice();
     }
 
     pub fn draw(self: *UI) void {
-        var draw_position = rl.Vector2.zero();
         rl.beginDrawing();
         rl.clearBackground(rl.Color.black);
-        // self.info_banner.draw(&draw_position);
-        self.home_screen.draw(&draw_position);
+        self.test_screen.draw();
         rl.endDrawing();
     }
 
@@ -51,21 +42,15 @@ pub const UI = struct {
         const font = rl.loadFontEx(font_file_path_slice, 16, null) catch @panic("Failed to load font");
         self.* = UI{
             .font = font,
-            .home_screen = undefined,
-            .info_banner = undefined,
-            .baby_data = props.baby_data,
             .allocator = props.allocator,
             .font_file_path = font_file_path_slice,
             .audio = Audio.init(.{ .allocator = props.allocator }),
+            .test_screen = TestScreen.init(.{ .font = font, .allocator = props.allocator }),
         };
-
-        const home_screen_layout_rect = rl.Rectangle.init(0, 0, @as(f32, @floatFromInt(rl.getScreenWidth())), @as(f32, @floatFromInt(rl.getScreenHeight())));
-        self.home_screen = HomeScreen.init(.{ .font = font, .allocator = props.allocator, .layout_rect = home_screen_layout_rect });
-        self.info_banner = InfoBanner.init(.{ .allocator = props.allocator, .font = font, .baby_data = props.baby_data, .audio = &self.audio });
     }
 
     fn load(self: *UI) void {
-        self.info_banner.load();
+        _ = self;
     }
 
     pub fn run(self: *UI) void {
@@ -78,7 +63,6 @@ pub const UI = struct {
     }
 
     pub fn update(self: *UI) void {
-        self.info_banner.update();
-        self.home_screen.update();
+        self.test_screen.update();
     }
 };

@@ -30,10 +30,7 @@ pub fn createDirectory(io: *Io, env_map: *Map, dir_path: []const u8) !void {
 
 pub fn createFile(io: *Io, env_map: *Map, file_path: []const u8) !void {
     const home_dir = getHomeDirectory(io, env_map) catch |err| return err;
-    const file = home_dir.createFile(io.*, file_path, .{ .exclusive = true }) catch |err| switch (err) {
-        error.PathAlreadyExists => return,
-        else => return err,
-    };
+    const file = home_dir.createFile(io.*, file_path, .{ .exclusive = true }) catch |err| return err;
     defer file.close(io.*);
 }
 
@@ -77,6 +74,6 @@ pub fn writeFile(io: *Io, env_map: *Map, file_path: []const u8, data: []const u8
         else => return err,
     };
     defer file.close(io.*);
-    file.writeStreamingAll(io.*, data) catch return error.FileWriteFailed;
     file.setLength(io.*, data.len) catch return error.FileWriteFailed;
+    file.writeStreamingAll(io.*, data) catch return error.FileWriteFailed;
 }
