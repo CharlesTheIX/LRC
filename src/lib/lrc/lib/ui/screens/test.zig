@@ -6,6 +6,7 @@ const TextInput = @import("../inputs/text_input.zig").TextInput;
 const FeedingType = @import("../../baby_data/utils.zig").FeedingType;
 const NumberInput = @import("../inputs/number_input.zig").NumberInput;
 const SelectInput = @import("../inputs/select_input.zig").SelectInput;
+const TextAreaInput = @import("../inputs/text_area_input.zig").TextAreaInput;
 
 const Props = struct {
     font: rl.Font,
@@ -19,6 +20,7 @@ pub const TestScreen = struct {
     date_input: TextInput,
     time_input: TextInput,
     submit_button: Button,
+    notes_input: TextAreaInput,
     show_error_msg: bool = false,
     amount_ml_input: NumberInput,
     allocator: *std.mem.Allocator,
@@ -30,6 +32,7 @@ pub const TestScreen = struct {
     pub fn deinit(self: *TestScreen) void {
         self.time_input.deinit();
         self.date_input.deinit();
+        self.notes_input.deinit();
         self.submit_button.deinit();
         self.amount_ml_input.deinit();
         self.duration_sec_input.deinit();
@@ -65,6 +68,8 @@ pub const TestScreen = struct {
         draw_pos.y += 2.5 * @as(f32, @floatFromInt(props.font_size)) + amount_ml_input.rect.height;
         const feeding_type_select_input = getFeedingTypeSelectInput(props, &draw_pos);
         draw_pos.y += 2.5 * @as(f32, @floatFromInt(props.font_size)) + feeder_select_input.rect.height;
+        const notes_input = getNotesInput(props, &draw_pos);
+        draw_pos.y += 2.5 * @as(f32, @floatFromInt(props.font_size)) + feeding_type_select_input.rect.height;
         const submit_button = getSubmitButton(props, &draw_pos);
         return TestScreen{
             .font = props.font,
@@ -73,6 +78,7 @@ pub const TestScreen = struct {
             .time_input = time_input,
             .submit_button = submit_button,
             .allocator = props.allocator,
+            .notes_input = notes_input,
             .amount_ml_input = amount_ml_input,
             .duration_sec_input = duration_sec_input,
             .feeder_select_input = feeder_select_input,
@@ -83,6 +89,7 @@ pub const TestScreen = struct {
     pub fn update(self: *TestScreen) void {
         self.date_input.update();
         self.time_input.update();
+        self.notes_input.update();
         self.submit_button.update();
         self.amount_ml_input.update();
         self.duration_sec_input.update();
@@ -121,6 +128,10 @@ pub const TestScreen = struct {
         return SelectInput.init(.{ .width = 200, .font = props.font, .draw_pos = draw_pos, .bg_color = rl.Color.black, .font_size = props.font_size, .txt_color = rl.Color.white, .label = "Feeding Type", .border_color = rl.Color.green, .allocator = props.allocator, .id = "feeding_type_select_input", .placeholder = "Select feeding type...", .options = &[_][]const u8{ FeedingType.Breast.toSlice(), FeedingType.BreastAndFormula.toSlice(), FeedingType.Formula.toSlice() } });
     }
 
+    fn getNotesInput(props: Props, draw_pos: *rl.Vector2) TextAreaInput {
+        return .init(.{ .id = "notes_input", .width = 400, .font = props.font, .draw_pos = draw_pos, .initial_value = "", .font_size = props.font_size, .bg_color = rl.Color.black, .txt_color = rl.Color.white, .border_color = rl.Color.green, .allocator = props.allocator, .label = "Notes", .placeholder = "Enter notes..." });
+    }
+
     fn getSubmitButton(props: Props, draw_pos: *rl.Vector2) Button {
         return Button.init(.{ .id = "submit_button", .font = props.font, .label = "Submit", .draw_pos = draw_pos, .bg_color = rl.Color.black, .font_size = props.font_size, .txt_color = rl.Color.white, .callback = submitButtonCallback, .border_color = rl.Color.green, .allocator = props.allocator });
     }
@@ -139,9 +150,10 @@ pub const TestScreen = struct {
         const amount_ml_text = self.amount_ml_input.getValueText();
         const feeder = self.feeder_select_input.getValue();
         const feeding_type = self.feeding_type_select_input.getValue();
+        const notes = self.notes_input.getValue();
         std.debug.print(
-            "date: {s}, time: {s}, duration: {d}s, duration_text: {s} seconds, amount: {d}ml, amount_text: {s}, feeder: {s}, feeding_type: {s}\n",
-            .{ date, time, duration_sec, duration_sec_text, amount_ml, amount_ml_text, feeder, feeding_type },
+            "date: {s}, time: {s}, duration: {d}s, duration_text: {s} seconds, amount: {d}ml, amount_text: {s}, feeder: {s}, feeding_type: {s}, notes: {s}\n",
+            .{ date, time, duration_sec, duration_sec_text, amount_ml, amount_ml_text, feeder, feeding_type, notes },
         );
     }
 };

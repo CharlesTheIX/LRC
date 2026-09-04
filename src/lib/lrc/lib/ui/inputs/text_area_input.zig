@@ -7,9 +7,9 @@ const Props = struct {
     width: f32,
     height: f32,
     font: rl.Font,
-    font_size: i32,
     bg_color: rl.Color,
     txt_color: rl.Color,
+    font_size: u32 = 16,
     border_color: rl.Color,
     layout_rect: rl.Rectangle,
     placeholder: []const u8 = "",
@@ -20,7 +20,7 @@ const Props = struct {
 pub const TextAreaInput = struct {
     font: rl.Font,
     len: usize = 0,
-    font_size: i32,
+    font_size: u32,
     cursor: usize = 0,
     rect: rl.Rectangle,
     bg_color: rl.Color,
@@ -31,10 +31,11 @@ pub const TextAreaInput = struct {
     scroll_offset: f32 = 0,
     border_color: rl.Color,
     placeholder: []const u8,
-    buffer: [1024]u8 = undefined,
     cursor_visible: bool = true,
+    buffer: [1024]u8 = undefined,
     allocator: *std.mem.Allocator,
 
+    // Base methods
     pub fn deinit(self: *TextAreaInput) void {
         self.buffer = undefined;
     }
@@ -75,18 +76,6 @@ pub const TextAreaInput = struct {
         };
         input.setValue(props.initial_value);
         return input;
-    }
-
-    pub fn getValue(self: *TextAreaInput) []const u8 {
-        return self.buffer[0..self.len];
-    }
-
-    pub fn setValue(self: *TextAreaInput, new_value: []const u8) void {
-        const len = @min(new_value.len, self.buffer.len);
-        @memcpy(self.buffer[0..len], new_value[0..len]);
-        self.len = len;
-        self.cursor = len;
-        self.scroll_offset = 0;
     }
 
     pub fn update(self: *TextAreaInput) void {
@@ -161,6 +150,19 @@ pub const TextAreaInput = struct {
             edited = true;
         }
         if (edited) self.resetBlink();
+    }
+
+    // Helper methods
+    pub fn getValue(self: *TextAreaInput) []const u8 {
+        return self.buffer[0..self.len];
+    }
+
+    pub fn setValue(self: *TextAreaInput, new_value: []const u8) void {
+        const len = @min(new_value.len, self.buffer.len);
+        @memcpy(self.buffer[0..len], new_value[0..len]);
+        self.len = len;
+        self.cursor = len;
+        self.scroll_offset = 0;
     }
 
     fn insert(self: *TextAreaInput, char: u8) void {
