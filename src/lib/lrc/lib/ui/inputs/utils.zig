@@ -1,6 +1,6 @@
 pub const cursor_blink_interval = 0.5;
 
-pub const char_spacing = 2.0;
+// pub const char_spacing = 2.0;
 
 pub fn getCharSpacing(font_size: u32) f32 {
     var spacing = @divFloor(font_size, 8);

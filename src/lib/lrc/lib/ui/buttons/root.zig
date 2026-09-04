@@ -1,20 +1,24 @@
 const std = @import("std");
 const rl = @import("raylib");
+const utils = @import("./utils.zig");
 const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 const Props = struct {
     font: rl.Font,
+    id: []const u8,
     label: []const u8,
     bg_color: rl.Color,
     txt_color: rl.Color,
     font_size: u32 = 16,
     draw_pos: *rl.Vector2,
+    border_color: rl.Color,
     allocator: *std.mem.Allocator,
     callback: ?*const fn () void = null,
 };
 
 pub const Button = struct {
     font: rl.Font,
+    id: []const u8,
     font_size: u32,
     label: []const u8,
     bg_color: rl.Color,
@@ -22,6 +26,10 @@ pub const Button = struct {
     txt_color: rl.Color,
     padding: rl.Vector2,
     visible: bool = true,
+    focused: bool = false,
+    border_color: rl.Color,
+    focused_bg_color: rl.Color,
+    focused_txt_color: rl.Color,
     callback: ?*const fn () void,
     allocator: *std.mem.Allocator,
     cursor: rl.MouseCursor = rl.MouseCursor.default,
@@ -47,44 +55,53 @@ pub const Button = struct {
         return Button{
             .rect = rect,
             .font = props.font,
+            .id = props.id,
             .padding = padding,
             .label = props.label,
             .bg_color = props.bg_color,
             .font_size = props.font_size,
             .txt_color = props.txt_color,
             .allocator = props.allocator,
+            .border_color = props.border_color,
+            .focused_txt_color = props.bg_color,
+            .focused_bg_color = props.border_color,
             .callback = props.callback,
         };
     }
 
     pub fn update(self: *Button) void {
-        const mouse_pos = rl.getMousePosition();
-        if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
-            rl.setMouseCursor(rl.MouseCursor.pointing_hand);
-            if (rl.isMouseButtonPressed(rl.MouseButton.left)) self.onClick();
-        } else rl.setMouseCursor(rl.MouseCursor.default);
+        self.updateFocus();
     }
 
     // Helper methods
     fn drawRectangle(self: *Button) void {
-        rl.drawRectangleRec(self.rect, self.bg_color);
+        const border_thickness: f32 = if (self.focused) 2 else 1;
+        const bg_color = if (self.focused) self.focused_bg_color else self.bg_color;
+        rl.drawRectangleRec(self.rect, bg_color);
+        rl.drawRectangleLinesEx(self.rect, border_thickness, self.border_color);
     }
 
     fn drawText(self: *Button) void {
         const text = self.label;
+        const txt_color = if (self.focused) self.focused_txt_color else self.txt_color;
         const text_z = sliceToZSlice(self.allocator, text) catch return;
         defer self.allocator.free(text_z);
-        rl.drawTextEx(
-            self.font,
-            text_z,
-            .init(self.rect.x + self.padding.x, self.rect.y + self.padding.y),
-            @as(f32, @floatFromInt(self.font_size)),
-            2.0,
-            self.txt_color,
-        );
+        rl.drawTextEx(self.font, text_z, .init(self.rect.x + self.padding.x, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), utils.getCharSpacing(self.font_size), txt_color);
     }
 
     fn onClick(self: *Button) void {
         if (self.callback) |cb| cb();
+    }
+
+    fn updateFocus(self: *Button) void {
+        const mouse_pos = rl.getMousePosition();
+        if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
+            self.focused = true;
+            rl.setMouseCursor(.pointing_hand);
+            if (rl.isMouseButtonPressed(rl.MouseButton.left)) self.onClick();
+        } else {
+            self.focused = false;
+            rl.setMouseCursor(.default);
+        }
     }
 };

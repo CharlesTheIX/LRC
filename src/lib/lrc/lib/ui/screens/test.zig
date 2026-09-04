@@ -51,13 +51,13 @@ pub const TestScreen = struct {
 };
 
 fn getDateInput(props: Props, draw_pos: *rl.Vector2) TextInput {
-    return .init(.{ .width = 200, .font = props.font, .draw_pos = draw_pos, .initial_value = "", .font_size = props.font_size, .bg_color = rl.Color.black, .txt_color = rl.Color.white, .border_color = rl.Color.green, .allocator = props.allocator, .label = "Date (YYYY-MM-DD)", .placeholder = "Enter date..." });
+    return .init(.{ .id = "date_input", .width = 200, .font = props.font, .draw_pos = draw_pos, .initial_value = "", .font_size = props.font_size, .bg_color = rl.Color.black, .txt_color = rl.Color.white, .border_color = rl.Color.green, .allocator = props.allocator, .label = "Date (YYYY-MM-DD)", .placeholder = "Enter date..." });
 }
 
 fn getSubmitButton(props: Props, draw_pos: *rl.Vector2) Button {
-    return Button.init(.{ .font = props.font, .label = "Submit", .draw_pos = draw_pos, .bg_color = rl.Color.blue, .font_size = props.font_size, .txt_color = rl.Color.white, .callback = null, .allocator = props.allocator });
+    return Button.init(.{ .id = "submit_button", .font = props.font, .label = "Submit", .draw_pos = draw_pos, .bg_color = rl.Color.black, .font_size = props.font_size, .txt_color = rl.Color.white, .callback = null, .border_color = rl.Color.green, .allocator = props.allocator });
 }
 
 fn getTimeInput(props: Props, draw_pos: *rl.Vector2) TextInput {
-    return .init(.{ .width = 200, .font = props.font, .initial_value = "", .draw_pos = draw_pos, .bg_color = rl.Color.black, .label = "Time (HH:MM:SS)", .txt_color = rl.Color.white, .font_size = props.font_size, .allocator = props.allocator, .border_color = rl.Color.green, .placeholder = "Enter time..." });
+    return .init(.{ .id = "time_input", .width = 200, .font = props.font, .initial_value = "", .draw_pos = draw_pos, .bg_color = rl.Color.black, .label = "Time (HH:MM:SS)", .txt_color = rl.Color.white, .font_size = props.font_size, .allocator = props.allocator, .border_color = rl.Color.green, .placeholder = "Enter time..." });
 }

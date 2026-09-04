@@ -6,6 +6,7 @@ const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 const Props = struct {
     width: f32,
     font: rl.Font,
+    id: []const u8,
     bg_color: rl.Color,
     font_size: u32 = 16,
     txt_color: rl.Color,
@@ -19,6 +20,7 @@ const Props = struct {
 
 pub const TextInput = struct {
     font: rl.Font,
+    id: []const u8,
     len: usize = 0,
     font_size: u32,
     cursor: usize = 0,
@@ -64,6 +66,7 @@ pub const TextInput = struct {
         }
         var input = TextInput{
             .font = props.font,
+            .id = props.id,
             .padding = padding,
             .rect = input_rect,
             .label_pos = label_pos,
@@ -119,14 +122,7 @@ pub const TextInput = struct {
         const text_z = sliceToZSlice(self.allocator, text) catch return;
         defer self.allocator.free(text_z);
         rl.beginScissorMode(@intFromFloat(self.rect.x), @intFromFloat(self.rect.y), @intFromFloat(self.rect.width), @intFromFloat(self.rect.height));
-        rl.drawTextEx(
-            self.font,
-            text_z,
-            .init(self.rect.x + self.padding.x - self.scroll_offset, self.rect.y + self.padding.y),
-            @as(f32, @floatFromInt(self.font_size)),
-            utils.getCharSpacing(self.font_size),
-            self.txt_color,
-        );
+        rl.drawTextEx(self.font, text_z, .init(self.rect.x + self.padding.x - self.scroll_offset, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), utils.getCharSpacing(self.font_size), self.txt_color);
         rl.endScissorMode();
     }
 
