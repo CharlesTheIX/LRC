@@ -1,5 +1,6 @@
 const std = @import("std");
 const rl = @import("raylib");
+const ui_utils = @import("../utils.zig");
 const Button = @import("../buttons/root.zig").Button;
 const Feeder = @import("../../baby_data/utils.zig").Feeder;
 const TextInput = @import("../inputs/text_input.zig").TextInput;
@@ -41,11 +42,9 @@ pub const TestScreen = struct {
     }
 
     pub fn draw(self: *TestScreen) void {
-        if (self.show_error_msg) {
-            var draw_pos = rl.Vector2.init(self.submit_button.rect.x, self.submit_button.rect.y + self.submit_button.rect.height + @as(f32, @floatFromInt(self.font_size)));
-            self.drawErrorMessage(&draw_pos);
-        }
+        if (self.show_error_msg) self.drawErrorMessage();
         self.submit_button.draw();
+        self.notes_input.draw();
         self.feeding_type_select_input.draw();
         self.feeder_select_input.draw();
         self.duration_sec_input.draw();
@@ -69,7 +68,7 @@ pub const TestScreen = struct {
         const feeding_type_select_input = getFeedingTypeSelectInput(props, &draw_pos);
         draw_pos.y += 2.5 * @as(f32, @floatFromInt(props.font_size)) + feeder_select_input.rect.height;
         const notes_input = getNotesInput(props, &draw_pos);
-        draw_pos.y += 2.5 * @as(f32, @floatFromInt(props.font_size)) + feeding_type_select_input.rect.height;
+        draw_pos.y += 2.5 * @as(f32, @floatFromInt(props.font_size)) + notes_input.rect.height;
         const submit_button = getSubmitButton(props, &draw_pos);
         return TestScreen{
             .font = props.font,
@@ -103,9 +102,10 @@ pub const TestScreen = struct {
         self.submit_button.callback_context = self;
     }
 
-    fn drawErrorMessage(self: *TestScreen, draw_pos: *rl.Vector2) void {
-        _ = self;
-        _ = draw_pos;
+    fn drawErrorMessage(self: *TestScreen) void {
+        const draw_pos = rl.Vector2.init(self.submit_button.rect.x, self.submit_button.rect.y + self.submit_button.rect.height + @as(f32, @floatFromInt(self.font_size)));
+        const error_msg = "An error occurred, please review your inputs and try again.";
+        rl.drawTextEx(self.font, error_msg, draw_pos, @as(f32, @floatFromInt(self.font_size)), ui_utils.getCharSpacing(self.font_size), rl.Color.red);
     }
 
     fn getAmountMlInput(props: Props, draw_pos: *rl.Vector2) NumberInput {
@@ -121,7 +121,24 @@ pub const TestScreen = struct {
     }
 
     fn getFeederSelectInput(props: Props, draw_pos: *rl.Vector2) SelectInput {
-        return SelectInput.init(.{ .width = 200, .font = props.font, .draw_pos = draw_pos, .label = "Feeder", .bg_color = rl.Color.black, .font_size = props.font_size, .txt_color = rl.Color.white, .border_color = rl.Color.green, .id = "feeder_select_input", .allocator = props.allocator, .placeholder = "Select feeder...", .options = &[_][]const u8{ Feeder.David.toSlice(), Feeder.Pavla.toSlice(), Feeder.Other.toSlice() } });
+        return SelectInput.init(.{
+            .width = 200,
+            .font = props.font,
+            .draw_pos = draw_pos,
+            .label = "Feeder",
+            .bg_color = rl.Color.black,
+            .font_size = props.font_size,
+            .txt_color = rl.Color.white,
+            .border_color = rl.Color.green,
+            .id = "feeder_select_input",
+            .allocator = props.allocator,
+            .placeholder = "Select feeder...",
+            .options = &[3][]const u8{
+                Feeder.David.toSlice(),
+                Feeder.Pavla.toSlice(),
+                Feeder.Other.toSlice(),
+            },
+        });
     }
 
     fn getFeedingTypeSelectInput(props: Props, draw_pos: *rl.Vector2) SelectInput {
@@ -129,7 +146,7 @@ pub const TestScreen = struct {
     }
 
     fn getNotesInput(props: Props, draw_pos: *rl.Vector2) TextAreaInput {
-        return .init(.{ .id = "notes_input", .width = 400, .font = props.font, .draw_pos = draw_pos, .initial_value = "", .font_size = props.font_size, .bg_color = rl.Color.black, .txt_color = rl.Color.white, .border_color = rl.Color.green, .allocator = props.allocator, .label = "Notes", .placeholder = "Enter notes..." });
+        return .init(.{ .width = 400, .font = props.font, .label = "Notes", .draw_pos = draw_pos, .initial_value = "", .id = "notes_input", .font_size = props.font_size, .bg_color = rl.Color.black, .txt_color = rl.Color.white, .border_color = rl.Color.green, .allocator = props.allocator, .placeholder = "Enter notes..." });
     }
 
     fn getSubmitButton(props: Props, draw_pos: *rl.Vector2) Button {
