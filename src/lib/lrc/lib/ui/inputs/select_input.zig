@@ -88,12 +88,10 @@ pub const SelectInput = struct {
 
     pub fn update(self: *SelectInput) void {
         if (!self.visible) return;
-        var cursor_set = false;
         const mouse_pos = rl.getMousePosition();
         const clicked = rl.isMouseButtonPressed(rl.MouseButton.left);
         if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
             rl.setMouseCursor(rl.MouseCursor.pointing_hand);
-            cursor_set = true;
             if (clicked) {
                 self.focused = true;
                 self.open = !self.open;
@@ -110,7 +108,6 @@ pub const SelectInput = struct {
                     self.hovered_index = i;
                     self.active_index = i;
                     rl.setMouseCursor(rl.MouseCursor.pointing_hand);
-                    cursor_set = true;
                     if (clicked) self.select(i);
                 }
             }
@@ -122,7 +119,6 @@ pub const SelectInput = struct {
             }
         }
 
-        if (!cursor_set) rl.setMouseCursor(rl.MouseCursor.default);
         if (!self.focused or self.options.len == 0) return;
 
         if (rl.isKeyPressed(.escape)) {

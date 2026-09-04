@@ -48,16 +48,29 @@ pub const TestScreen = struct {
         self.time_input.update();
         self.submit_button.update();
     }
+
+    // Helper methods
+    // Must be called once the TestScreen is at its final address so the button's callback context stays valid (Zig has no bound-method closures).
+    pub fn bindCallbacks(self: *TestScreen) void {
+        self.submit_button.callback_context = self;
+    }
+
+    fn getDateInput(props: Props, draw_pos: *rl.Vector2) TextInput {
+        return .init(.{ .id = "date_input", .width = 200, .font = props.font, .draw_pos = draw_pos, .initial_value = "", .font_size = props.font_size, .bg_color = rl.Color.black, .txt_color = rl.Color.white, .border_color = rl.Color.green, .allocator = props.allocator, .label = "Date (YYYY-MM-DD)", .placeholder = "Enter date..." });
+    }
+
+    fn getSubmitButton(props: Props, draw_pos: *rl.Vector2) Button {
+        return Button.init(.{ .id = "submit_button", .font = props.font, .label = "Submit", .draw_pos = draw_pos, .bg_color = rl.Color.black, .font_size = props.font_size, .txt_color = rl.Color.white, .callback = submitButtonCallback, .border_color = rl.Color.green, .allocator = props.allocator });
+    }
+
+    fn getTimeInput(props: Props, draw_pos: *rl.Vector2) TextInput {
+        return .init(.{ .id = "time_input", .width = 200, .font = props.font, .initial_value = "", .draw_pos = draw_pos, .bg_color = rl.Color.black, .label = "Time (HH:MM:SS)", .txt_color = rl.Color.white, .font_size = props.font_size, .allocator = props.allocator, .border_color = rl.Color.green, .placeholder = "Enter time..." });
+    }
+
+    fn submitButtonCallback(context: ?*anyopaque) void {
+        const self: *TestScreen = @ptrCast(@alignCast(context.?));
+        const date = self.date_input.getValue();
+        const time = self.time_input.getValue();
+        std.debug.print("date: {s}, time: {s}\n", .{ date, time });
+    }
 };
-
-fn getDateInput(props: Props, draw_pos: *rl.Vector2) TextInput {
-    return .init(.{ .id = "date_input", .width = 200, .font = props.font, .draw_pos = draw_pos, .initial_value = "", .font_size = props.font_size, .bg_color = rl.Color.black, .txt_color = rl.Color.white, .border_color = rl.Color.green, .allocator = props.allocator, .label = "Date (YYYY-MM-DD)", .placeholder = "Enter date..." });
-}
-
-fn getSubmitButton(props: Props, draw_pos: *rl.Vector2) Button {
-    return Button.init(.{ .id = "submit_button", .font = props.font, .label = "Submit", .draw_pos = draw_pos, .bg_color = rl.Color.black, .font_size = props.font_size, .txt_color = rl.Color.white, .callback = null, .border_color = rl.Color.green, .allocator = props.allocator });
-}
-
-fn getTimeInput(props: Props, draw_pos: *rl.Vector2) TextInput {
-    return .init(.{ .id = "time_input", .width = 200, .font = props.font, .initial_value = "", .draw_pos = draw_pos, .bg_color = rl.Color.black, .label = "Time (HH:MM:SS)", .txt_color = rl.Color.white, .font_size = props.font_size, .allocator = props.allocator, .border_color = rl.Color.green, .placeholder = "Enter time..." });
-}

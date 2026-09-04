@@ -218,9 +218,8 @@ pub const TextInput = struct {
                 self.moveCursorToMouse(mouse_pos);
                 self.resetBlink();
             }
-        } else {
-            rl.setMouseCursor(.default);
-            if (rl.isMouseButtonPressed(.left)) self.focused = false;
+        } else if (rl.isMouseButtonPressed(.left)) {
+            self.focused = false;
         }
     }
 

@@ -176,12 +176,9 @@ pub const NumberInput = struct {
                     self.resetBlink();
                 }
             }
-        } else {
-            rl.setMouseCursor(.default);
-            if (rl.isMouseButtonPressed(.left)) {
-                self.focused = false;
-                self.setValue(self.getValue());
-            }
+        } else if (rl.isMouseButtonPressed(.left)) {
+            self.focused = false;
+            self.setValue(self.getValue());
         }
         if (!self.focused) return;
         self.blink_timer += rl.getFrameTime();

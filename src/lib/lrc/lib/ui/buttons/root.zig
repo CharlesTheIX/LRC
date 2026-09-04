@@ -13,7 +13,8 @@ const Props = struct {
     draw_pos: *rl.Vector2,
     border_color: rl.Color,
     allocator: *std.mem.Allocator,
-    callback: ?*const fn () void = null,
+    callback_context: ?*anyopaque = null,
+    callback: ?*const fn (callback_context: ?*anyopaque) void = null,
 };
 
 pub const Button = struct {
@@ -30,9 +31,10 @@ pub const Button = struct {
     border_color: rl.Color,
     focused_bg_color: rl.Color,
     focused_txt_color: rl.Color,
-    callback: ?*const fn () void,
+    callback_context: ?*anyopaque,
     allocator: *std.mem.Allocator,
     cursor: rl.MouseCursor = rl.MouseCursor.default,
+    callback: ?*const fn (callback_context: ?*anyopaque) void,
 
     // Base methods
     pub fn deinit(self: *Button) void {
@@ -65,6 +67,7 @@ pub const Button = struct {
             .border_color = props.border_color,
             .focused_txt_color = props.bg_color,
             .focused_bg_color = props.border_color,
+            .callback_context = props.callback_context,
             .callback = props.callback,
         };
     }
@@ -90,7 +93,7 @@ pub const Button = struct {
     }
 
     fn onClick(self: *Button) void {
-        if (self.callback) |cb| cb();
+        if (self.callback) |cb| cb(self.callback_context);
     }
 
     fn updateFocus(self: *Button) void {
@@ -99,9 +102,6 @@ pub const Button = struct {
             self.focused = true;
             rl.setMouseCursor(.pointing_hand);
             if (rl.isMouseButtonPressed(rl.MouseButton.left)) self.onClick();
-        } else {
-            self.focused = false;
-            rl.setMouseCursor(.default);
-        }
+        } else self.focused = false;
     }
 };

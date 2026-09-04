@@ -104,9 +104,8 @@ pub const TextAreaInput = struct {
                 self.scroll_offset -= wheel_move * self.lineHeight() * 3;
                 self.clampScroll();
             }
-        } else {
-            rl.setMouseCursor(.default);
-            if (rl.isMouseButtonPressed(.left)) self.focused = false;
+        } else if (rl.isMouseButtonPressed(.left)) {
+            self.focused = false;
         }
         if (!self.focused) return;
 

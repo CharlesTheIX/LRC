@@ -16,6 +16,7 @@ pub const UI = struct {
     font_file_path: [:0]const u8,
     allocator: *std.mem.Allocator,
 
+    // Base method
     pub fn deinit(self: *UI) void {
         self.audio.deinit();
         self.allocator.free(self.font_file_path);
@@ -37,7 +38,6 @@ pub const UI = struct {
         rl.setTargetFPS(60);
         rl.initAudioDevice();
         rl.maximizeWindow();
-
         const font_file_path_slice = sliceToZSlice(props.allocator, props.font_file_path) catch @panic("Failed to convert font file path to Z slice");
         const font = rl.loadFontEx(font_file_path_slice, 16, null) catch @panic("Failed to load font");
         self.* = UI{
@@ -50,7 +50,7 @@ pub const UI = struct {
     }
 
     fn load(self: *UI) void {
-        _ = self;
+        self.test_screen.bindCallbacks();
     }
 
     pub fn run(self: *UI) void {
@@ -63,6 +63,8 @@ pub const UI = struct {
     }
 
     pub fn update(self: *UI) void {
+        // Reset once per frame so widgets only need to claim a cursor, never clear it.
+        rl.setMouseCursor(.default);
         self.test_screen.update();
     }
 };
