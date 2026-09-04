@@ -57,11 +57,11 @@ pub const TextInput = struct {
         var label_pos: ?rl.Vector2 = null;
         const font_size_f32 = @as(f32, @floatFromInt(props.font_size));
         const padding = rl.Vector2.init(@divFloor(font_size_f32, 2), @divFloor(font_size_f32, 4));
-        const height = @as(f32, @floatFromInt(props.font_size)) + (2 * padding.y);
+        const height = font_size_f32 + (2 * padding.y);
         var input_rect = rl.Rectangle.init(props.draw_pos.x, props.draw_pos.y, props.width, height);
         if (props.label) |label| {
             _ = label;
-            input_rect.y += @as(f32, @floatFromInt(props.font_size)) + padding.y;
+            input_rect.y += font_size_f32 + padding.y;
             label_pos = rl.Vector2.init(props.draw_pos.x, props.draw_pos.y);
         }
         var input = TextInput{
@@ -214,13 +214,11 @@ pub const TextInput = struct {
         if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
             rl.setMouseCursor(.ibeam);
             if (rl.isMouseButtonPressed(.left)) {
+                self.resetBlink();
                 self.focused = true;
                 self.moveCursorToMouse(mouse_pos);
-                self.resetBlink();
             }
-        } else if (rl.isMouseButtonPressed(.left)) {
-            self.focused = false;
-        }
+        } else if (rl.isMouseButtonPressed(.left)) self.focused = false;
     }
 
     fn updateScroll(self: *TextInput, visible_width: f32) void {
