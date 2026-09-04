@@ -1,9 +1,6 @@
 const std = @import("std");
 const utils = @import("./utils.zig");
-const createFile = @import("../../utils.zig").createFile;
-const readFile = @import("../../utils.zig").readFile;
-const writeFile = @import("../../utils.zig").writeFile;
-const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
+const core_utils = @import("../../utils.zig");
 
 const Props = struct {
     io: *std.Io,
@@ -33,8 +30,8 @@ pub const BabyData = struct {
     }
 
     pub fn init(props: Props) BabyData {
-        const body_items_file_path = sliceToZSlice(props.allocator, props.body_items_file_path) catch @panic("Failed to convert feeding items file path to Z slice");
-        const feeding_items_file_path = sliceToZSlice(props.allocator, props.feeding_items_file_path) catch @panic("Failed to convert feeding items file path to Z slice");
+        const body_items_file_path = core_utils.sliceToZSlice(props.allocator, props.body_items_file_path) catch @panic("Failed to convert feeding items file path to Z slice");
+        const feeding_items_file_path = core_utils.sliceToZSlice(props.allocator, props.feeding_items_file_path) catch @panic("Failed to convert feeding items file path to Z slice");
         var baby_data = BabyData{
             .io = props.io,
             .env_map = props.env_map,
@@ -181,31 +178,31 @@ pub const BabyData = struct {
 
     fn loadBodyData(self: *BabyData) void {
         var body_file_exists = false;
-        createFile(self.io, self.env_map, self.body_items_file_path) catch |err| switch (err) {
+        core_utils.createFile(self.io, self.env_map, self.body_items_file_path) catch |err| switch (err) {
             error.PathAlreadyExists => body_file_exists = true,
             else => @panic("Failed to create body items data file"),
         };
         if (!body_file_exists) {
             const example_content = "# FORMAT: date_time=2026-09-02T00:00:00;urinations=6;defecations=6;weight_kg=3.5;notes=N/A\n";
-            writeFile(self.io, self.env_map, self.body_items_file_path, example_content) catch @panic("Failed to write initial body items data file");
+            core_utils.writeFile(self.io, self.env_map, self.body_items_file_path, example_content) catch @panic("Failed to write initial body items data file");
         }
         var arena_allocator = self.arena.allocator();
-        const body_content = readFile(self.io, self.env_map, &arena_allocator, self.body_items_file_path) catch @panic("Failed to read body items data file");
+        const body_content = core_utils.readFile(self.io, self.env_map, &arena_allocator, self.body_items_file_path) catch @panic("Failed to read body items data file");
         extractBodyDataFromContent(self, body_content);
     }
 
     fn loadFeedingData(self: *BabyData) void {
         var feeding_file_exists = false;
-        createFile(self.io, self.env_map, self.feeding_items_file_path) catch |err| switch (err) {
+        core_utils.createFile(self.io, self.env_map, self.feeding_items_file_path) catch |err| switch (err) {
             error.PathAlreadyExists => feeding_file_exists = true,
             else => @panic("Failed to create feeding items data file"),
         };
         if (!feeding_file_exists) {
             const example_content = "# FORMAT: date_time=2026-09-02T00:00:00;duration_sec=30;type=breast;feeder=Pavla;notes=N/A\n";
-            writeFile(self.io, self.env_map, self.feeding_items_file_path, example_content) catch @panic("Failed to write initial feeding items data file");
+            core_utils.writeFile(self.io, self.env_map, self.feeding_items_file_path, example_content) catch @panic("Failed to write initial feeding items data file");
         }
         var arena_allocator = self.arena.allocator();
-        const feeding_content = readFile(self.io, self.env_map, &arena_allocator, self.feeding_items_file_path) catch @panic("Failed to read feeding items data file");
+        const feeding_content = core_utils.readFile(self.io, self.env_map, &arena_allocator, self.feeding_items_file_path) catch @panic("Failed to read feeding items data file");
         extractFeedingDataFromContent(self, feeding_content);
     }
 
@@ -221,7 +218,7 @@ pub const BabyData = struct {
 
     fn mergeBodyItemsFromDisk(self: *BabyData) void {
         var arena_allocator = self.arena.allocator();
-        const disk_content = readFile(self.io, self.env_map, &arena_allocator, self.body_items_file_path) catch return;
+        const disk_content = core_utils.readFile(self.io, self.env_map, &arena_allocator, self.body_items_file_path) catch return;
         const arena = self.arena.allocator();
         var merged: std.ArrayList(utils.BodyItem) = .empty;
         if (self.body_items) |items| merged.appendSlice(arena, items) catch @panic("Failed to merge body items");
@@ -244,7 +241,7 @@ pub const BabyData = struct {
 
     fn mergeFeedingItemsFromDisk(self: *BabyData) void {
         var arena_allocator = self.arena.allocator();
-        const disk_content = readFile(self.io, self.env_map, &arena_allocator, self.feeding_items_file_path) catch return;
+        const disk_content = core_utils.readFile(self.io, self.env_map, &arena_allocator, self.feeding_items_file_path) catch return;
         const arena = self.arena.allocator();
         var merged: std.ArrayList(utils.FeedingItem) = .empty;
         if (self.feeding_items) |items| merged.appendSlice(arena, items) catch @panic("Failed to merge feeding items");
@@ -299,7 +296,7 @@ pub const BabyData = struct {
                 content.append(arena, '\n') catch @panic("Failed to build body items file content");
             }
         }
-        writeFile(self.io, self.env_map, self.body_items_file_path, content.items) catch @panic("Failed to write body items data file");
+        core_utils.writeFile(self.io, self.env_map, self.body_items_file_path, content.items) catch @panic("Failed to write body items data file");
     }
 
     fn saveFeedingItems(self: *BabyData) void {
@@ -316,7 +313,7 @@ pub const BabyData = struct {
                 content.append(arena, '\n') catch @panic("Failed to build feeding items file content");
             }
         }
-        writeFile(self.io, self.env_map, self.feeding_items_file_path, content.items) catch @panic("Failed to write feeding items data file");
+        core_utils.writeFile(self.io, self.env_map, self.feeding_items_file_path, content.items) catch @panic("Failed to write feeding items data file");
     }
 
     fn sortBodyItemsByDateTime(self: *BabyData, ascending: bool) void {
