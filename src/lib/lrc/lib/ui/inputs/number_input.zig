@@ -135,7 +135,7 @@ pub const NumberInput = struct {
         const arrow_w = 6.0;
         const cx = x + (utils.spinner_width / 2);
         rl.drawTriangle(.init(cx - arrow_w / 2, mid_y - 3), .init(cx + arrow_w / 2, mid_y - 3), .init(cx, mid_y - 8), self.txt_color);
-        rl.drawTriangle(.init(cx - arrow_w / 2, mid_y + 3), .init(cx + arrow_w / 2, mid_y + 3), .init(cx, mid_y + 8), self.txt_color);
+        rl.drawTriangle(.init(cx - arrow_w / 2, mid_y + 3), .init(cx, mid_y + 8), .init(cx + arrow_w / 2, mid_y + 3), self.txt_color);
     }
 
     fn drawText(self: *NumberInput) void {
@@ -261,11 +261,13 @@ pub const NumberInput = struct {
     fn updateFocus(self: *NumberInput) void {
         const mouse_pos = rl.getMousePosition();
         const spinner_rect = rl.Rectangle.init(self.rect.x + self.rect.width - utils.spinner_width, self.rect.y, utils.spinner_width, self.rect.height);
-        const up_rect = rl.Rectangle.init(spinner_rect.x, spinner_rect.y, spinner_rect.width, spinner_rect.height / 2);
         if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
+            const up_rect = rl.Rectangle.init(spinner_rect.x, spinner_rect.y, spinner_rect.width, spinner_rect.height / 2);
             if (rl.checkCollisionPointRec(mouse_pos, spinner_rect)) {
                 rl.setMouseCursor(.pointing_hand);
+                if (rl.checkCollisionPointRec(mouse_pos, up_rect)) {} else {} // This can be used to visually indicate which part of the spinner is being hovered over at a later date
             } else rl.setMouseCursor(.ibeam);
+
             if (rl.isMouseButtonPressed(.left)) {
                 self.focused = true;
                 if (rl.checkCollisionPointRec(mouse_pos, spinner_rect)) {
@@ -287,6 +289,7 @@ pub const NumberInput = struct {
             const char = rl.getCharPressed();
             if (char == 0) break;
             if (char < 32 or char > 126) continue;
+            if (!self.isCharAllowed(char)) continue;
             if (self.len >= self.buffer.len) continue;
             const insert_at = self.cursor;
             var i = self.len;

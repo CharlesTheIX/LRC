@@ -3,26 +3,32 @@ const rl = @import("raylib");
 const sliceToZSlice = @import("../../../utils.zig").sliceToZSlice;
 
 const Props = struct {
+    width: f32,
     font: rl.Font,
-    font_size: i32,
+    id: []const u8,
     bg_color: rl.Color,
+    font_size: u32 = 16,
     txt_color: rl.Color,
-    position: rl.Vector2,
+    draw_pos: *rl.Vector2,
     border_color: rl.Color,
-    highlight_color: rl.Color,
+    label: ?[]const u8 = null,
     selected_index: usize = 0,
     options: []const []const u8,
+    placeholder: []const u8 = "",
+    initial_value: ?usize = null,
     allocator: *std.mem.Allocator,
-    callback: ?*const fn (usize) void = null,
+    callback_context: ?*anyopaque = null,
+    highlight_color: rl.Color = rl.Color.dark_gray,
+    callback: ?*const fn (callback_context: ?*anyopaque) void = null,
 };
 
-/// A `<select>`-style select: shows the selected option in a closed box, and
-/// expands a list of options below it (like a native HTML select) when clicked.
 pub const SelectInput = struct {
     font: rl.Font,
-    font_size: i32,
+    id: []const u8,
+    font_size: u32,
     item_height: f32,
     rect: rl.Rectangle,
+    label: ?[]const u8,
     bg_color: rl.Color,
     open: bool = false,
     txt_color: rl.Color,
@@ -31,12 +37,15 @@ pub const SelectInput = struct {
     focused: bool = false,
     selected_index: usize,
     border_color: rl.Color,
+    label_pos: ?rl.Vector2,
+    placeholder: []const u8,
     highlight_color: rl.Color,
     options: []const []const u8,
-    hovered_index: ?usize = null,
     active_index: ?usize = null,
+    hovered_index: ?usize = null,
     allocator: *std.mem.Allocator,
-    callback: ?*const fn (usize) void = null,
+    callback_context: ?*anyopaque,
+    callback: ?*const fn (callback_context: ?*anyopaque) void,
 
     pub fn deinit(self: *SelectInput) void {
         _ = self;
@@ -44,8 +53,11 @@ pub const SelectInput = struct {
 
     pub fn draw(self: *SelectInput) void {
         if (!self.visible) return;
-        self.drawBox(self.rect, self.selectedLabel(), self.bg_color);
+        self.drawLabel();
+        self.drawRectangle();
+        self.drawText();
         self.drawArrow();
+        // if (self.open) self.drawOptions();
         if (self.open) {
             for (self.options, 0..) |option, i| {
                 const item_rect = self.itemRect(i);
@@ -56,32 +68,44 @@ pub const SelectInput = struct {
     }
 
     pub fn init(props: Props) SelectInput {
-        var max_label_width: f32 = 0;
-        const padding = rl.Vector2.init(10, 5);
-        const font_height = @as(f32, @floatFromInt(props.font_size));
-        const item_height = font_height + (2 * padding.y);
-        for (props.options) |option| {
-            const label_z = sliceToZSlice(props.allocator, option) catch continue;
-            defer props.allocator.free(label_z);
-            const label_width = @as(f32, @floatFromInt(rl.measureText(label_z, props.font_size)));
-            if (label_width > max_label_width) max_label_width = label_width;
+        var label_pos: ?rl.Vector2 = null;
+        const font_size_f32 = @as(f32, @floatFromInt(props.font_size));
+        const padding = rl.Vector2.init(@divFloor(font_size_f32, 2), @divFloor(font_size_f32, 4));
+        const item_height = font_size_f32 + (2 * padding.y);
+        var input_rect = rl.Rectangle.init(props.draw_pos.x, props.draw_pos.y, props.width, item_height);
+        if (props.label) |label| {
+            _ = label;
+            input_rect.y += font_size_f32 + padding.y;
+            label_pos = rl.Vector2.init(props.draw_pos.x, props.draw_pos.y);
         }
-        // Reserve extra width on the right for the arrow indicator.
-        const width = max_label_width + (2 * padding.x) + item_height;
-        const rect = rl.Rectangle.init(props.position.x, props.position.y, width, item_height);
+        var selected_index: usize = 0;
+        if (props.initial_value) |value| {
+            if (value < props.options.len) {
+                selected_index = value;
+            } else if (props.options.len == 0) {
+                selected_index = 0;
+            } else selected_index = props.options.len - 1;
+        } else if (props.options.len == 0) {
+            selected_index = 0;
+        } else selected_index = @min(props.selected_index, props.options.len - 1);
         return SelectInput{
-            .rect = rect,
             .font = props.font,
+            .id = props.id,
             .padding = padding,
+            .rect = input_rect,
             .item_height = item_height,
-            .bg_color = props.bg_color,
+            .label_pos = label_pos,
+            .label = props.label,
             .font_size = props.font_size,
+            .bg_color = props.bg_color,
             .txt_color = props.txt_color,
+            .selected_index = selected_index,
             .allocator = props.allocator,
             .border_color = props.border_color,
+            .placeholder = props.placeholder,
             .options = props.options,
-            .selected_index = if (props.options.len == 0) 0 else @min(props.selected_index, props.options.len - 1),
             .highlight_color = props.highlight_color,
+            .callback_context = props.callback_context,
             .callback = props.callback,
         };
     }
@@ -89,40 +113,43 @@ pub const SelectInput = struct {
     pub fn update(self: *SelectInput) void {
         if (!self.visible) return;
         const mouse_pos = rl.getMousePosition();
-        const clicked = rl.isMouseButtonPressed(rl.MouseButton.left);
+        const clicked = rl.isMouseButtonPressed(.left);
+
         if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
-            rl.setMouseCursor(rl.MouseCursor.pointing_hand);
+            rl.setMouseCursor(.pointing_hand);
             if (clicked) {
                 self.focused = true;
                 self.open = !self.open;
                 self.active_index = if (self.open and self.options.len > 0) self.selected_index else null;
             }
-        } else if (clicked and !self.open) {
+        } else if (clicked) {
+            self.open = false;
             self.focused = false;
+            self.active_index = null;
         }
+
         if (self.open) {
             self.hovered_index = null;
             for (self.options, 0..) |_, i| {
                 const item_rect = self.itemRect(i);
                 if (rl.checkCollisionPointRec(mouse_pos, item_rect)) {
-                    self.hovered_index = i;
                     self.active_index = i;
-                    rl.setMouseCursor(rl.MouseCursor.pointing_hand);
+                    self.hovered_index = i;
                     if (clicked) self.select(i);
+                    rl.setMouseCursor(.pointing_hand);
                 }
             }
-            // Clicking anywhere else while open closes the list without changing the selection.
             if (clicked and self.hovered_index == null and !rl.checkCollisionPointRec(mouse_pos, self.rect)) {
                 self.open = false;
-                self.active_index = null;
                 self.focused = false;
+                self.active_index = null;
             }
         }
 
-        if (!self.focused or self.options.len == 0) return;
-
+        if (self.options.len == 0) return;
         if (rl.isKeyPressed(.escape)) {
             self.open = false;
+            self.focused = false;
             self.active_index = null;
             return;
         }
@@ -131,6 +158,7 @@ pub const SelectInput = struct {
                 if (self.active_index) |index| self.select(index);
             } else {
                 self.open = true;
+                self.focused = true;
                 self.active_index = self.selected_index;
             }
             return;
@@ -141,17 +169,18 @@ pub const SelectInput = struct {
         if (up_pressed or down_pressed) {
             const current = self.active_index orelse self.selected_index;
             const last_index = self.options.len - 1;
-            const next_index = if (up_pressed)
-                if (current == 0) 0 else current - 1
-            else if (current == last_index)
-                last_index
-            else
-                current + 1;
+            var next_index: usize = 0;
+            if (up_pressed) {
+                if (current == 0) {
+                    next_index = 0;
+                } else next_index = current - 1;
+            } else if (current == last_index) {
+                next_index = last_index;
+            } else next_index = current + 1;
+
             if (self.open) {
                 self.active_index = next_index;
-            } else if (next_index != self.selected_index) {
-                self.select(next_index);
-            }
+            } else if (next_index != self.selected_index) self.select(next_index);
         }
     }
 
@@ -174,18 +203,60 @@ pub const SelectInput = struct {
         rl.drawRectangleLinesEx(rect, border_width, self.border_color);
         const label_z = sliceToZSlice(self.allocator, label) catch return;
         defer self.allocator.free(label_z);
-        rl.drawTextEx(self.font, label_z, .init(rect.x + self.padding.x, rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), 3, self.txt_color);
+        rl.drawTextEx(self.font, label_z, .init(rect.x + self.padding.x, rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), 1, self.txt_color);
+    }
+
+    fn drawLabel(self: *SelectInput) void {
+        if (self.label) |label| {
+            if (self.label_pos) |label_pos| {
+                const label_z = sliceToZSlice(self.allocator, label) catch @panic("Failed to convert label to Z slice");
+                defer self.allocator.free(label_z);
+                rl.drawTextEx(self.font, label_z, label_pos, @as(f32, @floatFromInt(self.font_size)), 1, self.txt_color);
+            }
+        }
+    }
+
+    fn drawRectangle(self: *SelectInput) void {
+        const border_thickness: f32 = if (self.focused) 2 else 1;
+        rl.drawRectangleRec(self.rect, self.bg_color);
+        rl.drawRectangleLinesEx(self.rect, border_thickness, self.border_color);
+    }
+
+    fn drawText(self: *SelectInput) void {
+        const text = if (self.selected_index < self.options.len) self.options[self.selected_index] else self.placeholder;
+        const display_text = if (text.len > 0) text else self.placeholder;
+        const text_z = sliceToZSlice(self.allocator, display_text) catch return;
+        defer self.allocator.free(text_z);
+        rl.beginScissorMode(@intFromFloat(self.rect.x), @intFromFloat(self.rect.y), @intFromFloat(self.rect.width - self.item_height), @intFromFloat(self.rect.height));
+        rl.drawTextEx(self.font, text_z, .init(self.rect.x + self.padding.x, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), 1, self.txt_color);
+        rl.endScissorMode();
     }
 
     fn itemRect(self: *SelectInput, index: usize) rl.Rectangle {
         return rl.Rectangle.init(self.rect.x, self.rect.y + (self.item_height * @as(f32, @floatFromInt(index + 1))), self.rect.width, self.item_height);
     }
 
+    pub fn getValue(self: *SelectInput) []const u8 {
+        if (self.selected_index >= self.options.len) return "";
+        return self.options[self.selected_index];
+    }
+
+    pub fn getValueIndex(self: *SelectInput) usize {
+        return self.selected_index;
+    }
+
+    pub fn setValue(self: *SelectInput, index: usize) void {
+        if (self.options.len == 0) return;
+        self.selected_index = @min(index, self.options.len - 1);
+    }
+
     fn select(self: *SelectInput, index: usize) void {
-        self.selected_index = index;
+        if (self.options.len == 0) return;
+        self.selected_index = @min(index, self.options.len - 1);
         self.open = false;
         self.active_index = null;
-        if (self.callback) |cb| cb(index);
+        self.hovered_index = null;
+        if (self.callback) |cb| cb(self.callback_context);
     }
 
     fn selectedLabel(self: *SelectInput) []const u8 {
