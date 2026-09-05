@@ -14,7 +14,6 @@ const Props = struct {
     draw_pos: *rl.Vector2,
     border_color: rl.Color,
     label: ?[]const u8 = null,
-    selected_index: usize = 0,
     options: []const []const u8,
     placeholder: []const u8 = "",
     initial_value: ?usize = null,
@@ -37,7 +36,7 @@ pub const SelectInput = struct {
     padding: rl.Vector2,
     visible: bool = true,
     focused: bool = false,
-    selected_index: usize,
+    selected_index: ?usize,
     border_color: rl.Color,
     label_pos: ?rl.Vector2,
     placeholder: []const u8,
@@ -64,7 +63,7 @@ pub const SelectInput = struct {
     }
 
     pub fn init(props: Props) SelectInput {
-        var selected_index: usize = 0;
+        var selected_index: ?usize = null;
         var label_pos: ?rl.Vector2 = null;
         const font_size_f32 = @as(f32, @floatFromInt(props.font_size));
         const padding = rl.Vector2.init(@divFloor(font_size_f32, 2), @divFloor(font_size_f32, 4));
@@ -76,14 +75,12 @@ pub const SelectInput = struct {
             label_pos = rl.Vector2.init(props.draw_pos.x, props.draw_pos.y);
         }
         if (props.initial_value) |value| {
-            if (value < props.options.len) {
+            if (props.options.len == 0) {
+                selected_index = null;
+            } else if (value < props.options.len) {
                 selected_index = value;
-            } else if (props.options.len == 0) {
-                selected_index = 0;
             } else selected_index = props.options.len - 1;
-        } else if (props.options.len == 0) {
-            selected_index = 0;
-        } else selected_index = @min(props.selected_index, props.options.len - 1);
+        }
         return SelectInput{
             .font = props.font,
             .id = props.id,
@@ -119,11 +116,13 @@ pub const SelectInput = struct {
 
     // Helper methods
     fn drawArrow(self: *SelectInput) void {
-        const size: f32 = 5;
-        const direction: f32 = if (self.open) -1 else 1;
-        const center_y = self.rect.y + (self.rect.height / 2);
-        const center_x = self.rect.x + self.rect.width - self.padding.x - size;
-        rl.drawTriangle(.init(center_x - size, center_y - (direction * size / 2)), .init(center_x + size, center_y - (direction * size / 2)), .init(center_x, center_y + (direction * size / 2)), self.txt_color);
+        const size: f32 = 4.0;
+        const shift: f32 = @divFloor(size, 2);
+        const center_y = self.rect.y + @divFloor(self.rect.height, shift);
+        const center_x = self.rect.x + self.rect.width - self.padding.x - @divFloor(size, shift);
+        if (self.open) {
+            rl.drawTriangle(.init(center_x - size, center_y + shift), .init(center_x + size, center_y + shift), .init(center_x, center_y - size + shift), self.txt_color);
+        } else rl.drawTriangle(.init(center_x - size, center_y - shift), .init(center_x, center_y + size - shift), .init(center_x + size, center_y - shift), self.txt_color);
     }
 
     fn drawBox(self: *SelectInput, rect: rl.Rectangle, label: []const u8, bg_color: rl.Color) void {
@@ -160,7 +159,7 @@ pub const SelectInput = struct {
     }
 
     fn drawText(self: *SelectInput) void {
-        const text = if (self.selected_index < self.options.len) self.options[self.selected_index] else self.placeholder;
+        const text = if (self.selected_index) |index| (if (index < self.options.len) self.options[index] else self.placeholder) else self.placeholder;
         const display_text = if (text.len > 0) text else self.placeholder;
         const text_z = sliceToZSlice(self.allocator, display_text) catch return;
         defer self.allocator.free(text_z);
@@ -174,26 +173,30 @@ pub const SelectInput = struct {
     }
 
     pub fn getValue(self: *SelectInput) []const u8 {
-        if (self.selected_index >= self.options.len) return "";
-        return self.options[self.selected_index];
+        const index = self.selected_index orelse return "";
+        if (index >= self.options.len) return "";
+        return self.options[index];
     }
 
-    pub fn getValueIndex(self: *SelectInput) usize {
+    pub fn getValueIndex(self: *SelectInput) ?usize {
         return self.selected_index;
     }
 
     fn select(self: *SelectInput, index: usize) void {
         if (self.options.len == 0) return;
-        self.selected_index = @min(index, self.options.len - 1);
         self.open = false;
+        self.focused = false;
         self.active_index = null;
         self.hovered_index = null;
+        self.selected_index = @min(index, self.options.len - 1);
+        if (ui_utils.hasFocus(self.id)) ui_utils.clearFocus();
         if (self.callback) |cb| cb(self.callback_context);
     }
 
     fn selectedLabel(self: *SelectInput) []const u8 {
-        if (self.selected_index >= self.options.len) return "";
-        return self.options[self.selected_index];
+        const index = self.selected_index orelse return "";
+        if (index >= self.options.len) return "";
+        return self.options[index];
     }
 
     pub fn setValue(self: *SelectInput, index: usize) void {
@@ -220,16 +223,15 @@ pub const SelectInput = struct {
         if (clicked_option_index) |index| {
             if (clicked) {
                 self.select(index);
-                ui_utils.claimFocus(self.id);
                 return;
             }
         }
         if (rl.checkCollisionPointRec(mouse_pos, self.rect)) {
             rl.setMouseCursor(.pointing_hand);
             if (clicked) {
-                ui_utils.claimFocus(self.id);
                 self.focused = true;
                 self.open = !self.open;
+                ui_utils.claimFocus(self.id);
                 self.active_index = if (self.open and self.options.len > 0) self.selected_index else null;
             }
         } else if (clicked) {
@@ -268,9 +270,9 @@ pub const SelectInput = struct {
         const up_pressed = rl.isKeyPressed(.up) or rl.isKeyPressedRepeat(.up);
         const down_pressed = rl.isKeyPressed(.down) or rl.isKeyPressedRepeat(.down);
         if (up_pressed or down_pressed) {
-            const current = self.active_index orelse self.selected_index;
-            const last_index = self.options.len - 1;
             var next_index: usize = 0;
+            const last_index = self.options.len - 1;
+            const current = self.active_index orelse self.selected_index orelse 0;
             if (up_pressed) {
                 if (current == 0) {
                     next_index = 0;
@@ -278,10 +280,9 @@ pub const SelectInput = struct {
             } else if (current == last_index) {
                 next_index = last_index;
             } else next_index = current + 1;
-
             if (self.open) {
                 self.active_index = next_index;
-            } else if (next_index != self.selected_index) self.select(next_index);
+            } else if (self.selected_index == null or next_index != self.selected_index.?) self.select(next_index);
         }
     }
 };

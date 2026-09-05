@@ -4,6 +4,7 @@ const Io = std.Io;
 const Map = std.process.Environ.Map;
 const Allocator = std.mem.Allocator;
 
+// Functions
 pub fn appendFile(io: *Io, env_map: *Map, file_path: []const u8, data: []const u8) !void {
     const home_dir = getHomeDirectory(io, env_map) catch |err| return err;
     const file = home_dir.openFile(io.*, file_path, .{ .mode = .read_write }) catch |err| switch (err) {

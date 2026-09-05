@@ -1,6 +1,11 @@
 const std = @import("std");
 const DateTime = @import("../date_time/root.zig").DateTime;
 
+// Consts
+pub const feeding_type_options = [_][]const u8{ FeedingType.Breast.toSlice(), FeedingType.BreastAndFormula.toSlice(), FeedingType.Formula.toSlice() };
+
+pub const feeder_options = [_][]const u8{ Feeder.David.toSlice(), Feeder.Pavla.toSlice(), Feeder.Other.toSlice() };
+
 // Enums
 pub const Feeder = enum {
     Pavla,

@@ -1,5 +1,6 @@
 const std = @import("std");
 const UI = @import("lib/ui/root.zig").UI;
+const ui_utils = @import("lib/ui/utils.zig");
 const BabyData = @import("lib/baby_data/root.zig").BabyData;
 const DateTime = @import("lib/date_time/root.zig").DateTime;
 
@@ -37,8 +38,7 @@ pub const LRC = struct {
             .allocator = props.allocator,
             .baby_data = BabyData.init(.{ .env_map = props.env_map, .io = props.io, .allocator = props.allocator }),
         };
-        // UI.init(&self.ui, .{ .allocator = props.allocator, .baby_data = &self.baby_data });
-        UI.init(&self.ui, .{ .allocator = props.allocator });
+        UI.init(&self.ui, .{ .allocator = props.allocator, .color_set = ui_utils.ColorTheme.Theme_1.colorSet() });
     }
 
     fn load(self: *LRC) void {
