@@ -4,12 +4,13 @@ const DateTime = @import("../date_time/root.zig").DateTime;
 // Consts
 pub const feeding_type_options = [_][]const u8{ FeedingType.Breast.toSlice(), FeedingType.BreastAndFormula.toSlice(), FeedingType.Formula.toSlice() };
 
-pub const feeder_options = [_][]const u8{ Feeder.David.toSlice(), Feeder.Pavla.toSlice(), Feeder.Other.toSlice() };
+pub const feeder_options = [_][]const u8{ Feeder.David.toSlice(), Feeder.Pavla.toSlice(), Feeder.PavlaAndDavid.toSlice(), Feeder.Other.toSlice() };
 
 // Enums
 pub const Feeder = enum {
     Pavla,
     David,
+    PavlaAndDavid,
     Other,
     Invalid,
 
@@ -17,6 +18,7 @@ pub const Feeder = enum {
         if (std.mem.eql(u8, slice, "Pavla")) return .Pavla;
         if (std.mem.eql(u8, slice, "David")) return .David;
         if (std.mem.eql(u8, slice, "Other")) return .Other;
+        if (std.mem.eql(u8, slice, "Pavla and David")) return .PavlaAndDavid;
         return .Invalid;
     }
 
@@ -25,6 +27,7 @@ pub const Feeder = enum {
             .Pavla => return "Pavla",
             .David => return "David",
             .Other => return "Other",
+            .PavlaAndDavid => return "Pavla and David",
             .Invalid => return "N/A",
         }
     }
