@@ -80,7 +80,7 @@ pub const BabyData = struct {
             var replaced = false;
             var new_items: std.ArrayList(utils.FeedingItem) = .empty;
             for (items) |existing_item| {
-                if (utils.sameFeedingDateTime(self, existing_item, item)) {
+                if (self.sameFeedingDateTime(existing_item, item)) {
                     if (!overwrite) return;
                     replaced = true;
                     new_items.append(arena, item) catch @panic("Failed to append overwritten feeding item");
@@ -93,7 +93,7 @@ pub const BabyData = struct {
             new_items.append(arena, item) catch @panic("Failed to append new feeding item");
             self.feeding_items = new_items.toOwnedSlice(arena) catch @panic("Failed to convert feeding items to owned slice");
         }
-        utils.saveFeedingItems(self);
+        self.saveFeedingItems();
     }
 
     fn extractBodyDataFromContent(self: *BabyData, content: []const u8) void {
@@ -318,7 +318,7 @@ pub const BabyData = struct {
 
     fn sortBodyItemsByDateTime(self: *BabyData, ascending: bool) void {
         if (self.body_items) |items| {
-            std.sort.heap(items, ascending, struct {
+            std.sort.heap(utils.BodyItem, items, ascending, struct {
                 fn lessThan(is_ascending: bool, left: utils.BodyItem, right: utils.BodyItem) bool {
                     if (left.date_time == null) return false;
                     if (right.date_time == null) return true;
@@ -331,7 +331,7 @@ pub const BabyData = struct {
 
     fn sortFeedingItemsByDateTime(self: *BabyData, ascending: bool) void {
         if (self.feeding_items) |items| {
-            std.sort.heap(items, ascending, struct {
+            std.sort.heap(utils.FeedingItem, items, ascending, struct {
                 fn lessThan(is_ascending: bool, left: utils.FeedingItem, right: utils.FeedingItem) bool {
                     if (left.date_time == null) return false;
                     if (right.date_time == null) return true;

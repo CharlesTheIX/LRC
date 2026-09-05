@@ -1,11 +1,13 @@
 const std = @import("std");
 const rl = @import("raylib");
 const ui_utils = @import("../utils.zig");
+const BabyData = @import("../../baby_data/root.zig").BabyData;
 const ManualCreateFeedingItemForm = @import("../forms/manual_create_feeding_item_form.zig").ManualCreateFeedingItemForm;
 
 const Props = struct {
     font: rl.Font,
     font_size: u32 = 16,
+    baby_data: *BabyData,
     color_set: ui_utils.ColorSet,
     allocator: *std.mem.Allocator,
 };
@@ -30,7 +32,7 @@ pub const TestScreen = struct {
     pub fn init(props: Props) TestScreen {
         const font_size_f32 = @as(f32, @floatFromInt(props.font_size));
         const draw_pos = rl.Vector2.init(font_size_f32, font_size_f32).scale(2.0);
-        const manual_create_feeding_item_form = ManualCreateFeedingItemForm.init(.{ .font = props.font, .draw_pos = &draw_pos, .font_size = props.font_size, .color_set = props.color_set, .allocator = props.allocator });
+        const manual_create_feeding_item_form = ManualCreateFeedingItemForm.init(.{ .font = props.font, .draw_pos = draw_pos, .font_size = props.font_size, .color_set = props.color_set, .allocator = props.allocator, .baby_data = props.baby_data });
         return TestScreen{
             .font = props.font,
             .font_size = props.font_size,

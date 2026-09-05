@@ -30,6 +30,13 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .root_source_file = b.path("src/lib/http/root.zig"),
     });
+    const game_mod = b.addModule("game", .{
+        .target = target,
+        .root_source_file = b.path("src/lib/game/root.zig"),
+        .imports = &.{
+            .{ .name = "raylib", .module = raylib },
+        },
+    });
 
     // Create executable
     const exe = b.addExecutable(.{
@@ -44,6 +51,7 @@ pub fn build(b: *std.Build) void {
                 .{ .name = "udp", .module = udp_mod },
                 .{ .name = "http", .module = http_mod },
                 .{ .name = "raylib", .module = raylib },
+                .{ .name = "game", .module = game_mod },
             },
         }),
     });

@@ -38,7 +38,7 @@ pub const LRC = struct {
             .allocator = props.allocator,
             .baby_data = BabyData.init(.{ .env_map = props.env_map, .io = props.io, .allocator = props.allocator }),
         };
-        UI.init(&self.ui, .{ .allocator = props.allocator, .color_set = ui_utils.ColorTheme.Theme_1.colorSet() });
+        UI.init(&self.ui, .{ .allocator = props.allocator, .color_set = ui_utils.ColorTheme.Theme_1.colorSet(), .baby_data = &self.baby_data });
     }
 
     fn load(self: *LRC) void {

@@ -3,6 +3,7 @@ const app = @import("app");
 const lrc = @import("lrc");
 const udp = @import("udp");
 const http = @import("http");
+const game = @import("game");
 
 pub fn main(init: std.process.Init) void {
     // Initialize the I/O system
@@ -32,11 +33,15 @@ pub fn main(init: std.process.Init) void {
             return http_server.run() catch |err| std.debug.print("HTTP server error: {}\n", .{err});
         },
         .LRC => {
-            // Init and run the application
             var lrc_app: lrc.LRC = undefined;
             lrc_app.init(.{ .io = &io, .env_map = env_map, .args_it = &args_it, .allocator = &arena, .reader = stdin_reader, .writer = stdout_writer });
             defer lrc_app.deinit();
             return lrc_app.run();
+        },
+        .Game => {
+            var game_app = game.Game.init(.{ .io = &io, .env_map = env_map, .args_it = &args_it, .allocator = &arena, .writer = stdout_writer });
+            defer game_app.deinit();
+            return game_app.run();
         },
         .UDP_SERVER => {
             var udp_server = udp.UdpServer.init(.{ .io = &io, .writer = stdout_writer, .args_it = &args_it });

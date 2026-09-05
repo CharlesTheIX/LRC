@@ -11,7 +11,7 @@ const Props = struct {
     bg_color: rl.Color,
     font_size: u32 = 16,
     txt_color: rl.Color,
-    draw_pos: *rl.Vector2,
+    draw_pos: rl.Vector2,
     border_color: rl.Color,
     label: ?[]const u8 = null,
     options: []const []const u8,
