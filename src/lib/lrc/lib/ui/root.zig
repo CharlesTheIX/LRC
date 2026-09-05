@@ -54,7 +54,7 @@ pub const UI = struct {
     }
 
     fn load(self: *UI) void {
-        self.test_screen.bindCallbacks();
+        self.test_screen.load();
     }
 
     pub fn run(self: *UI) void {
@@ -67,7 +67,6 @@ pub const UI = struct {
     }
 
     pub fn update(self: *UI) void {
-        // Reset once per frame so widgets only need to claim a cursor, never clear it.
         rl.setMouseCursor(.default);
         self.test_screen.update();
     }

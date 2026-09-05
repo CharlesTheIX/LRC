@@ -115,6 +115,14 @@ pub const SelectInput = struct {
     }
 
     // Helper methods
+    pub fn blur(self: *SelectInput) void {
+        self.open = false;
+        self.focused = false;
+        self.active_index = null;
+        self.hovered_index = null;
+        if (ui_utils.hasFocus(self.id)) ui_utils.clearFocus();
+    }
+
     fn drawArrow(self: *SelectInput) void {
         const size: f32 = 4.0;
         const shift: f32 = @divFloor(size, 2);
@@ -168,8 +176,9 @@ pub const SelectInput = struct {
         rl.endScissorMode();
     }
 
-    fn itemRect(self: *SelectInput, index: usize) rl.Rectangle {
-        return rl.Rectangle.init(self.rect.x, self.rect.y + (self.item_height * @as(f32, @floatFromInt(index + 1))), self.rect.width, self.item_height);
+    pub fn focus(self: *SelectInput) void {
+        self.focused = true;
+        ui_utils.claimFocus(self.id);
     }
 
     pub fn getValue(self: *SelectInput) []const u8 {
@@ -180,6 +189,10 @@ pub const SelectInput = struct {
 
     pub fn getValueIndex(self: *SelectInput) ?usize {
         return self.selected_index;
+    }
+
+    fn itemRect(self: *SelectInput, index: usize) rl.Rectangle {
+        return rl.Rectangle.init(self.rect.x, self.rect.y + (self.item_height * @as(f32, @floatFromInt(index + 1))), self.rect.width, self.item_height);
     }
 
     fn select(self: *SelectInput, index: usize) void {

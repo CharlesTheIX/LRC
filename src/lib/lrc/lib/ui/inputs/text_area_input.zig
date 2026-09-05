@@ -12,7 +12,7 @@ const Props = struct {
     bg_color: rl.Color,
     txt_color: rl.Color,
     font_size: u32 = 16,
-    draw_pos: *rl.Vector2,
+    draw_pos: rl.Vector2,
     border_color: rl.Color,
     label: ?[]const u8 = null,
     placeholder: []const u8 = "",
@@ -101,6 +101,11 @@ pub const TextAreaInput = struct {
     }
 
     // Helper methods
+    pub fn blur(self: *TextAreaInput) void {
+        self.focused = false;
+        if (ui_utils.hasFocus(self.id)) ui_utils.clearFocus();
+    }
+
     fn clampScroll(self: *TextAreaInput) void {
         const content_height = @as(f32, @floatFromInt(self.line_count)) * self.lineHeight();
         const visible_height = self.rect.height - (2 * self.padding.y);
@@ -179,6 +184,12 @@ pub const TextAreaInput = struct {
             defer self.allocator.free(text_z);
             rl.drawTextEx(self.font, text_z, .init(self.rect.x + self.padding.x, y), @as(f32, @floatFromInt(self.font_size)), ui_utils.getCharSpacing(self.font_size), self.txt_color);
         }
+    }
+
+    pub fn focus(self: *TextAreaInput) void {
+        self.resetBlink();
+        self.focused = true;
+        ui_utils.claimFocus(self.id);
     }
 
     fn getTextWidth(self: *TextAreaInput, text: []const u8) f32 {

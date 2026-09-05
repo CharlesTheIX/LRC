@@ -11,7 +11,7 @@ const Props = struct {
     bg_color: rl.Color,
     font_size: u32 = 16,
     txt_color: rl.Color,
-    draw_pos: *rl.Vector2,
+    draw_pos: rl.Vector2,
     border_color: rl.Color,
     label: ?[]const u8 = null,
     placeholder: []const u8 = "",
@@ -96,6 +96,11 @@ pub const TextInput = struct {
     }
 
     // Helper methods
+    pub fn blur(self: *TextInput) void {
+        self.focused = false;
+        if (ui_utils.hasFocus(self.id)) ui_utils.clearFocus();
+    }
+
     fn drawCursor(self: *TextInput) void {
         if (self.focused and self.cursor_visible) {
             const cursor_x = self.rect.x + self.padding.x + self.getTextWidth(self.buffer[0..self.cursor]) - self.scroll_offset;
@@ -129,6 +134,12 @@ pub const TextInput = struct {
         rl.beginScissorMode(@intFromFloat(self.rect.x), @intFromFloat(self.rect.y), @intFromFloat(self.rect.width), @intFromFloat(self.rect.height));
         rl.drawTextEx(self.font, text_z, .init(self.rect.x + self.padding.x - self.scroll_offset, self.rect.y + self.padding.y), @as(f32, @floatFromInt(self.font_size)), ui_utils.getCharSpacing(self.font_size), self.txt_color);
         rl.endScissorMode();
+    }
+
+    pub fn focus(self: *TextInput) void {
+        self.resetBlink();
+        self.focused = true;
+        ui_utils.claimFocus(self.id);
     }
 
     fn getTextWidth(self: *TextInput, text: []const u8) f32 {

@@ -12,7 +12,7 @@ const Props = struct {
     bg_color: rl.Color,
     font_size: u32 = 16,
     txt_color: rl.Color,
-    draw_pos: *rl.Vector2,
+    draw_pos: rl.Vector2,
     border_color: rl.Color,
     initial_value: f64 = 0,
     allow_float: bool = true,
@@ -109,6 +109,12 @@ pub const NumberInput = struct {
     }
 
     // Helper methods
+    pub fn blur(self: *NumberInput) void {
+        self.focused = false;
+        self.setValue(self.getValue());
+        if (ui_utils.hasFocus(self.id)) ui_utils.clearFocus();
+    }
+
     fn drawCursor(self: *NumberInput) void {
         if (self.focused and self.cursor_visible) {
             const cursor_x = self.rect.x + self.padding.x + self.getTextWidth(self.buffer[0..self.cursor]) - self.scroll_offset;
@@ -154,6 +160,12 @@ pub const NumberInput = struct {
         rl.endScissorMode();
     }
 
+    pub fn focus(self: *NumberInput) void {
+        self.resetBlink();
+        self.focused = true;
+        ui_utils.claimFocus(self.id);
+    }
+
     fn getTextWidth(self: *NumberInput, text: []const u8) f32 {
         if (text.len == 0) return 0;
         const text_z = sliceToZSlice(self.allocator, text) catch return 0;
@@ -172,8 +184,8 @@ pub const NumberInput = struct {
     fn handleBackspace(self: *NumberInput, edited: *bool) void {
         var i = self.cursor;
         while (i < self.len) : (i += 1) self.buffer[i - 1] = self.buffer[i];
-        edited.* = true;
         self.len -= 1;
+        edited.* = true;
         self.cursor -= 1;
     }
 
@@ -246,15 +258,6 @@ pub const NumberInput = struct {
         self.cursor += 1;
     }
 
-    fn updateScroll(self: *NumberInput, visible_width: f32) void {
-        const cursor_x = self.getTextWidth(self.buffer[0..self.cursor]);
-        if (cursor_x - self.scroll_offset > visible_width) self.scroll_offset = cursor_x - visible_width;
-        if (cursor_x - self.scroll_offset < 0) self.scroll_offset = cursor_x;
-        const total_width = self.getTextWidth(self.getValueText());
-        const max_scroll = @max(0, total_width - visible_width);
-        self.scroll_offset = std.math.clamp(self.scroll_offset, 0, max_scroll);
-    }
-
     fn updateCursorBlink(self: *NumberInput) void {
         self.blink_timer += rl.getFrameTime();
         if (self.blink_timer >= utils.cursor_blink_interval) {
@@ -287,6 +290,15 @@ pub const NumberInput = struct {
             self.setValue(self.getValue());
             if (ui_utils.hasFocus(self.id)) ui_utils.clearFocus();
         }
+    }
+
+    fn updateScroll(self: *NumberInput, visible_width: f32) void {
+        const cursor_x = self.getTextWidth(self.buffer[0..self.cursor]);
+        if (cursor_x - self.scroll_offset > visible_width) self.scroll_offset = cursor_x - visible_width;
+        if (cursor_x - self.scroll_offset < 0) self.scroll_offset = cursor_x;
+        const total_width = self.getTextWidth(self.getValueText());
+        const max_scroll = @max(0, total_width - visible_width);
+        self.scroll_offset = std.math.clamp(self.scroll_offset, 0, max_scroll);
     }
 
     fn updateUserInput(self: *NumberInput) void {

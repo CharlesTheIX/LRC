@@ -10,7 +10,7 @@ const Props = struct {
     bg_color: rl.Color,
     txt_color: rl.Color,
     font_size: u32 = 16,
-    draw_pos: *rl.Vector2,
+    draw_pos: rl.Vector2,
     border_color: rl.Color,
     allocator: *std.mem.Allocator,
     callback_context: ?*anyopaque = null,
