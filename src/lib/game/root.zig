@@ -57,7 +57,7 @@ pub const Game = struct {
         rl.beginDrawing();
         rl.clearBackground(rl.Color.black);
         switch (self.game_state) {
-            .Playing => if (self.play_screen) |*play_screen| play_screen.draw(),
+            .Playing => if (self.play_screen) |*play_screen| play_screen.draw(self),
             .Paused => if (self.pause_screen) |*pause_screen| pause_screen.draw(),
             .Start => if (self.start_screen) |*start_screen| start_screen.draw(),
             .NewGame => if (self.new_game_screen) |*new_game_screen| new_game_screen.draw(),
@@ -66,11 +66,6 @@ pub const Game = struct {
         self.loader.draw();
         self.dev_screen.draw(self);
         rl.endDrawing();
-        // rl.beginMode2D(self.camera.camera2D);
-        // const rect = rl.Rectangle{ .x = 0, .y = 0, .width = @as(f32, @floatFromInt(rl.getScreenWidth())), .height = @as(f32, @floatFromInt(rl.getScreenHeight())) };
-        // rl.drawRectangleRec(rect, rl.Color.gray);
-        // utils.drawGrid(.{ .color = rl.Color.orange, .rect = rect, .gap = 16 });
-        // rl.endMode2D();
     }
 
     pub fn init(props: Props) Game {
@@ -126,13 +121,12 @@ pub const Game = struct {
         switch (self.game_state) {
             .Start => if (self.start_screen) |*start_screen| start_screen.update(self),
             .Paused => if (self.pause_screen) |*pause_screen| pause_screen.update(self),
-            .NewGame => if (self.new_game_screen) |*new_game_screen| new_game_screen.update(self),
+            // .NewGame => if (self.new_game_screen) |*new_game_screen| new_game_screen.update(self),
             .Settings => if (self.settings_screen) |*settings_screen| settings_screen.update(self),
-            .Playing => {
+            // .Playing => {
+            else => {
                 if (self.play_screen) |*play_screen| play_screen.update(self);
-                self.camera.update(&self.input_handler, null, null);
                 self.game_timer.update(rl.getFrameTime());
-                std.debug.print("Current Time: {d}\n", .{self.game_timer.current_time});
             },
         }
         self.dev_screen.update(self);
@@ -157,7 +151,6 @@ pub const Game = struct {
         var args = args_it.*;
         while (args.next()) |arg| {
             _ = arg;
-            // Process each argument as needed
         }
     }
 

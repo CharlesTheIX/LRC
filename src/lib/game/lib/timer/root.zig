@@ -1,12 +1,7 @@
 const std = @import("std");
 const utils = @import("./utils.zig");
 
-const Props = struct {
-    target_time: ?f64 = null,
-    timer_type: utils.TimerType,
-    allocator: *std.mem.Allocator,
-    continue_on_finish: bool = false,
-};
+const Props = struct { target_time: ?f64 = null, timer_type: utils.TimerType, allocator: *std.mem.Allocator, continue_on_finish: bool = false };
 
 pub const Timer = struct {
     paused: bool = false,
@@ -26,9 +21,7 @@ pub const Timer = struct {
     pub fn init(props: Props) Timer {
         var timer = Timer{ .timer_type = props.timer_type, .allocator = props.allocator, .target_time = props.target_time, .continue_on_finish = props.continue_on_finish };
         if ((props.timer_type == .Countdown or props.timer_type == .CountUp) and props.target_time == null) @panic("target_time must be provided for Countdown and CountUp timers.");
-        if (props.timer_type == .Countdown) {
-            timer.current_time = props.target_time orelse 0.0;
-        }
+        if (props.timer_type == .Countdown) timer.current_time = props.target_time orelse 0.0;
         return timer;
     }
 

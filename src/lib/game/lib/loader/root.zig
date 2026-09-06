@@ -5,13 +5,15 @@ const Game = @import("../../root.zig").Game;
 const Timer = @import("../timer/root.zig").Timer;
 const LoaderPhase = @import("./utils.zig").LoaderPhase;
 
-const Props = struct { font: rl.Font, font_size: u32 = 32, allocator: *std.mem.Allocator, fade_time: f64 = 0.3 };
+const Props = struct { font: rl.Font, font_size: u32 = 32, allocator: *std.mem.Allocator, fade_time: f64 = 0.3, hold_frames: u32 = 10 };
 
 pub const Loader = struct {
     font: rl.Font,
     font_size: u32,
     fade_timer: Timer,
+    hold_frames: u32,
     spinner_timer: Timer,
+    frames_held: u32 = 0,
     phase: LoaderPhase = .Idle,
     allocator: *std.mem.Allocator,
     message: [:0]const u8 = "LOADING",
@@ -36,6 +38,7 @@ pub const Loader = struct {
         return Loader{
             .font = props.font,
             .font_size = props.font_size,
+            .hold_frames = props.hold_frames,
             .allocator = props.allocator,
             .spinner_timer = Timer.init(.{ .timer_type = .Continuous, .allocator = props.allocator }),
             .fade_timer = Timer.init(.{ .timer_type = .Countdown, .target_time = props.fade_time, .allocator = props.allocator }),
@@ -54,7 +57,13 @@ pub const Loader = struct {
             },
             .Working => {
                 if (self.pending_state) |state| game.applyState(state);
+                self.frames_held = 0;
+                self.phase = .Holding;
                 self.pending_state = null;
+            },
+            .Holding => {
+                self.frames_held += 1;
+                if (self.frames_held < self.hold_frames) return;
                 self.restartFadeTimer();
                 self.phase = .FadeOut;
             },
@@ -96,6 +105,7 @@ pub const Loader = struct {
         return switch (self.phase) {
             .Idle => 0.0,
             .Working => 1.0,
+            .Holding => 1.0,
             .FadeOut => std.math.clamp(remaining, 0.0, 1.0),
             .FadeIn => std.math.clamp(1.0 - remaining, 0.0, 1.0),
         };

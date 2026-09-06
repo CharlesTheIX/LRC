@@ -8,12 +8,13 @@ const Click = @import("../input_handler/root.zig").Click;
 const max_menu_items = @import("./utils.zig").max_menu_items;
 const Cursor = @import("../input_handler/lib/cursor.zig").Cursor;
 
-const Props = struct { font: rl.Font, font_size: u32 = 32, allocator: *std.mem.Allocator, color: rl.Color = .white, active_color: rl.Color = .white };
+const Props = struct { font: rl.Font, font_size: u32 = 32, allocator: *std.mem.Allocator, color: rl.Color = .white, active_color: rl.Color = .white, draw_pos: rl.Vector2 = rl.Vector2{ .x = 0, .y = 0 } };
 
 pub const Menu = struct {
     font: rl.Font,
     font_size: u32,
     color: rl.Color,
+    draw_pos: rl.Vector2,
     item_count: usize = 0,
     active_color: rl.Color,
     active_index: usize = 0,
@@ -49,6 +50,7 @@ pub const Menu = struct {
             .font = props.font,
             .color = props.color,
             .font_size = props.font_size,
+            .draw_pos = props.draw_pos,
             .allocator = props.allocator,
             .active_color = props.active_color,
         };
@@ -103,14 +105,13 @@ pub const Menu = struct {
         return null;
     }
 
+    // Items are laid out from draw_pos, which both drawing and hover/click testing share.
     fn itemRect(self: *Menu, index: usize) rl.Rectangle {
         const font_size_f32 = utils.getFontSizeF32(self.font_size);
         const line_height = utils.getFontSizeF32(self.font_size) * 2;
-        const center = utils.getCenterVector2OfRect(utils.getWindowRect());
-        const total_height = @as(f32, @floatFromInt(self.item_count)) * line_height;
-        const y = center.y - total_height / 2 + @as(f32, @floatFromInt(index)) * line_height;
+        const y = self.draw_pos.y + @as(f32, @floatFromInt(index)) * line_height;
         const size = rl.measureTextEx(self.font, self.items[index].label, font_size_f32, utils.getCharSpacing(self.font_size));
-        return rl.Rectangle{ .x = center.x - size.x / 2, .y = y, .width = size.x, .height = font_size_f32 };
+        return rl.Rectangle{ .x = self.draw_pos.x, .y = y, .width = size.x, .height = font_size_f32 };
     }
 
     fn selectNext(self: *Menu) void {

@@ -25,12 +25,17 @@ pub const StartScreen = struct {
     }
 
     pub fn init(props: Props) StartScreen {
+        const font_size_f32 = utils.getFontSizeF32(props.font_size);
+        var menu_draw_pos = utils.getCenterVector2OfRect(utils.getWindowRect()).scale(0.5);
+        menu_draw_pos.x += font_size_f32;
+        menu_draw_pos.y += font_size_f32;
+        const menu = Menu.init(.{ .font = props.font, .font_size = props.font_size, .allocator = props.allocator, .draw_pos = menu_draw_pos });
         return StartScreen{
+            .menu = menu,
             .font = props.font,
             .font_size = props.font_size,
             .allocator = props.allocator,
             .background_texture = undefined,
-            .menu = Menu.init(.{ .font = props.font, .font_size = props.font_size, .allocator = props.allocator }),
         };
     }
 
@@ -62,15 +67,15 @@ pub const StartScreen = struct {
     fn loadCamera(game: *Game) void {
         const camera = &game.camera;
         camera.state = .Fixed;
-        camera.camera2D.zoom = 1.0;
-        camera.camera2D.target = rl.Vector2.zero();
+        camera.setZoom(1.0);
+        camera.setTarget(rl.Vector2.zero());
         camera.camera2D.offset = rl.Vector2.zero();
     }
 
     fn loadMenu(self: *StartScreen, game: *Game) void {
         self.menu.clearItems();
         if (game.save_data.time != 0) self.menu.addItem(.{ .label = "Continue", .on_select = selectContinue });
-        if (game.save_data.time == 0) self.menu.addItem(.{ .label = "New Game", .on_select = selectNewGame });
+        self.menu.addItem(.{ .label = "New Game", .on_select = selectNewGame });
         self.menu.addItem(.{ .label = "Settings", .on_select = selectSettings });
     }
 
@@ -79,7 +84,9 @@ pub const StartScreen = struct {
     }
 
     fn selectNewGame(game: *Game) void {
-        game.setState(.NewGame);
+        // game.save_data.reset();
+        // game.setState(.NewGame);
+        game.setState(.Playing);
     }
 
     fn selectSettings(game: *Game) void {

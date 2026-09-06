@@ -69,7 +69,13 @@ pub const Camera = struct {
         self.movement.target = target;
     }
 
-    fn snapToMap(self: *Camera, map_rect: *rl.Rectangle) void {
+    // camera2D.zoom is lerped toward zoom.target every update, so both must be set together.
+    pub fn setZoom(self: *Camera, zoom: f32) void {
+        self.zoom.target = std.math.clamp(zoom, self.zoom.min, self.zoom.max);
+        self.camera2D.zoom = self.zoom.target;
+    }
+
+    pub fn snapToMap(self: *Camera, map_rect: *rl.Rectangle) void {
         if (!self.snap_to_map) return;
         const zoom = @max(self.camera2D.zoom, 0.0001);
         const screen_w = @as(f32, @floatFromInt(rl.getScreenWidth()));
