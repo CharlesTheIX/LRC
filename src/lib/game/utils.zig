@@ -5,7 +5,6 @@ const Io = std.Io;
 const Map = std.process.Environ.Map;
 const Allocator = std.mem.Allocator;
 
-// Functions
 pub fn appendFile(io: *Io, env_map: *Map, file_path: []const u8, data: []const u8) !void {
     const home_dir = getHomeDirectory(io, env_map) catch |err| return err;
     const file = home_dir.openFile(io.*, file_path, .{ .mode = .read_write }) catch |err| switch (err) {
@@ -48,6 +47,69 @@ pub fn deleteFile(io: *Io, env_map: *Map, file_path: []const u8) !void {
     };
 }
 
+pub const DrawGridProps = struct { rect: rl.Rectangle = .init(0, 0, 0, 0), gap: i8 = 16, color: rl.Color = .black };
+pub fn drawGrid(props: DrawGridProps) void {
+    const cols = @divFloor(@as(i32, @intFromFloat(props.rect.width)), props.gap);
+    const rows = @divFloor(@as(i32, @intFromFloat(props.rect.height)), props.gap);
+    for (0..@as(usize, @intCast(cols)) + 1) |col| {
+        const x = @as(f32, @floatFromInt(@as(i32, @intCast(col)) * props.gap));
+        const from = rl.Vector2{ .x = x, .y = 0 };
+        const to = rl.Vector2{ .x = x, .y = props.rect.height };
+        drawLine(.{ .from = from, .to = to, .color = props.color });
+    }
+    for (0..@as(usize, @intCast(rows)) + 1) |row| {
+        const y = @as(f32, @floatFromInt(@as(i32, @intCast(row)) * props.gap));
+        const from = rl.Vector2{ .x = 0, .y = y };
+        const to = rl.Vector2{ .x = props.rect.width, .y = y };
+        drawLine(.{ .from = from, .to = to, .color = props.color });
+    }
+    var from = rl.Vector2{ .x = 0, .y = props.rect.height };
+    var to = rl.Vector2{ .x = props.rect.width, .y = props.rect.height };
+    drawLine(.{ .from = from, .to = to, .color = props.color });
+    from = rl.Vector2{ .x = props.rect.width, .y = 0 };
+    to = rl.Vector2{ .x = props.rect.width, .y = props.rect.height };
+    drawLine(.{ .from = from, .to = to, .color = props.color });
+}
+
+pub const DrawLineProps = struct { from: rl.Vector2 = .zero(), to: rl.Vector2 = .zero(), color: rl.Color = .black };
+pub fn drawLine(props: DrawLineProps) void {
+    const to_x = @as(i32, @intFromFloat(props.to.x));
+    const to_y = @as(i32, @intFromFloat(props.to.y));
+    const from_x = @as(i32, @intFromFloat(props.from.x));
+    const from_y = @as(i32, @intFromFloat(props.from.y));
+    rl.drawLine(from_x, from_y, to_x, to_y, props.color);
+}
+
+pub const GameState = enum {
+    Start,
+    Paused,
+    Playing,
+    NewGame,
+    Settings,
+
+    pub fn toString(self: GameState) []const u8 {
+        return switch (self) {
+            .Paused => "Paused",
+            .Playing => "Playing",
+            .NewGame => "NewGame",
+            .Start => "StartScreen",
+            .Settings => "SettingsScreen",
+        };
+    }
+};
+
+pub fn getCenterRectOfRectInRect(outer_rect: rl.Rectangle, inner_rect: rl.Rectangle) rl.Rectangle {
+    const center_x = outer_rect.x + (outer_rect.width - inner_rect.width) / 2;
+    const center_y = outer_rect.y + (outer_rect.height - inner_rect.height) / 2;
+    return rl.Rectangle{ .x = center_x, .y = center_y, .width = inner_rect.width, .height = inner_rect.height };
+}
+
+pub fn getCenterVector2OfRect(rect: rl.Rectangle) rl.Vector2 {
+    const center_x = rect.x + rect.width / 2;
+    const center_y = rect.y + rect.height / 2;
+    return rl.Vector2{ .x = center_x, .y = center_y };
+}
+
 pub fn getCharSpacing(font_size: u32) f32 {
     var spacing = @divFloor(font_size, 8);
     if (spacing < 1) spacing = 1;
@@ -61,6 +123,12 @@ pub fn getFontSizeF32(font_size: u32) f32 {
 fn getHomeDirectory(io: *Io, env_map: *Map) !std.Io.Dir {
     const home_path = env_map.get("HOME") orelse return error.HomeDirectoryNotFound;
     return std.Io.Dir.cwd().openDir(io.*, home_path, .{}) catch return error.HomeDirectoryNotFound;
+}
+
+pub fn getWindowRect() rl.Rectangle {
+    const width = @as(f32, @floatFromInt(rl.getScreenWidth()));
+    const height = @as(f32, @floatFromInt(rl.getScreenHeight()));
+    return rl.Rectangle{ .x = 0, .y = 0, .width = width, .height = height };
 }
 
 pub fn invertScroll(scroll: *rl.Vector2) rl.Vector2 {

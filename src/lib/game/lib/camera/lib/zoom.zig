@@ -11,21 +11,23 @@ pub const Zoom = struct {
     target: f32 = 3.0,
     lerp_speed: f32 = 0.1,
 
-    pub fn init() Zoom {
-        return .{};
-    }
-
+    // Base methods
     pub fn deinit(self: *Zoom) void {
         _ = self;
     }
 
-    fn setTarget(self: *Zoom, value: f32) void {
-        self.target = std.math.clamp(value, self.min, self.max);
+    pub fn init() Zoom {
+        return .{};
     }
 
     pub fn update(self: *Zoom, camera: *rl.Camera2D, ih: *InputHandler) void {
         self.updateFromInput(camera, ih);
         self.updateFromScroll(camera, ih);
+    }
+
+    // Helper methods
+    fn setTarget(self: *Zoom, value: f32) void {
+        self.target = std.math.clamp(value, self.min, self.max);
     }
 
     fn updateFromInput(self: *Zoom, camera: *rl.Camera2D, ih: *InputHandler) void {
@@ -40,9 +42,9 @@ pub const Zoom = struct {
     }
 
     fn updateFromScroll(self: *Zoom, camera: *rl.Camera2D, ih: *InputHandler) void {
-        if (ih.mouse.scroll.y == 0) return;
+        if (ih.mouse.scroll.y == 0 and ih.mouse.scroll.x == 0) return;
         if (ih.keyboard.activeKeysInclude(&[_]Key{ .LeftShift, .RightShift }, .Or)) {
-            self.setTarget(self.target + invertScroll(&ih.mouse.scroll).y * self.speed);
+            self.setTarget(self.target + invertScroll(&ih.mouse.scroll).x * self.speed);
             camera.zoom = self.target;
         }
     }

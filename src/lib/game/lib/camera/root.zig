@@ -5,15 +5,15 @@ const Movement = @import("./lib/movement.zig").Movement;
 const Rotation = @import("./lib/rotation.zig").Rotation;
 const InputHandler = @import("../input_handler/root.zig").InputHandler;
 
-const Props = struct {};
+const Props = struct { offset: rl.Vector2 };
 
 pub const Camera = struct {
     zoom: Zoom,
     movement: Movement,
     rotation: Rotation,
     camera2D: rl.Camera2D,
-    state: State = .Fixed,
-    snap_to_map: bool = true,
+    snap_to_map: bool = false,
+    state: CameraState = .Free,
 
     // Base methods
     pub fn deinit(self: *Camera) void {
@@ -21,7 +21,6 @@ pub const Camera = struct {
     }
 
     pub fn init(props: Props) Camera {
-        _ = props;
         const zoom = Zoom.init();
         const rotation = Rotation.init();
         const movement = Movement.init(rl.Vector2.init(0, 0));
@@ -29,26 +28,8 @@ pub const Camera = struct {
             .zoom = zoom,
             .movement = movement,
             .rotation = rotation,
-            .camera2D = rl.Camera2D{ .zoom = zoom.target, .rotation = rotation.target, .target = movement.target_position, .offset = movement.target_position },
+            .camera2D = rl.Camera2D{ .zoom = zoom.target, .rotation = rotation.target, .target = movement.target, .offset = props.offset },
         };
-    }
-
-    pub fn load(self: *Camera, offset: rl.Vector2) void {
-        self.camera2D.offset = offset;
-        switch (self.state) {
-            .Free => {
-                self.camera2D.target = offset;
-                self.movement.target_position = offset;
-            },
-            .Fixed => {
-                self.camera2D.target = offset;
-                self.movement.target_position = offset;
-            },
-            .Follow => {
-                self.camera2D.target = offset;
-                self.movement.target_position = offset;
-            },
-        }
     }
 
     pub fn update(self: *Camera, ih: *InputHandler, target: ?rl.Vector2, map_rect: ?*rl.Rectangle) void {
@@ -67,9 +48,9 @@ pub const Camera = struct {
             .Follow => {
                 self.zoom.update(&self.camera2D, ih);
                 if (target) |t| {
-                    self.movement.target_position = t;
-                } else self.movement.target_position = self.camera2D.target;
-                const diff = self.movement.target_position.subtract(self.camera2D.target);
+                    self.movement.target = t;
+                } else self.movement.target = self.camera2D.target;
+                const diff = self.movement.target.subtract(self.camera2D.target);
                 const diff_scaled = diff.scale(self.movement.lerp_speed);
                 self.camera2D.target = self.camera2D.target.add(diff_scaled);
                 if (map_rect) |rect| self.snapToMap(rect);
@@ -85,7 +66,7 @@ pub const Camera = struct {
 
     pub fn setTarget(self: *Camera, target: rl.Vector2) void {
         self.camera2D.target = target;
-        self.movement.target_position = target;
+        self.movement.target = target;
     }
 
     fn snapToMap(self: *Camera, map_rect: *rl.Rectangle) void {
@@ -113,17 +94,17 @@ pub const Camera = struct {
         }
         self.camera2D.target.x = std.math.clamp(self.camera2D.target.x, min_x, max_x);
         self.camera2D.target.y = std.math.clamp(self.camera2D.target.y, min_y, max_y);
-        self.movement.target_position.x = std.math.clamp(self.movement.target_position.x, min_x, max_x);
-        self.movement.target_position.y = std.math.clamp(self.movement.target_position.y, min_y, max_y);
+        self.movement.target.x = std.math.clamp(self.movement.target.x, min_x, max_x);
+        self.movement.target.y = std.math.clamp(self.movement.target.y, min_y, max_y);
     }
 };
 
-pub const State = enum {
+pub const CameraState = enum {
     Free,
     Fixed,
     Follow,
 
-    pub fn toString(self: State) []const u8 {
+    pub fn toString(self: CameraState) []const u8 {
         return switch (self) {
             .Free => "Free",
             .Fixed => "Fixed",

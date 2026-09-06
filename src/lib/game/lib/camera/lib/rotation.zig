@@ -9,12 +9,13 @@ pub const Rotation = struct {
     target: f32 = 0.0,
     lerp_speed: f32 = 0.1,
 
-    pub fn init() Rotation {
-        return .{};
-    }
-
+    // Base methods
     pub fn deinit(self: *Rotation) void {
         _ = self;
+    }
+
+    pub fn init() Rotation {
+        return .{};
     }
 
     pub fn update(self: *Rotation, camera: *rl.Camera2D, ih: *InputHandler) void {
@@ -22,6 +23,7 @@ pub const Rotation = struct {
         self.updateFromScroll(ih);
     }
 
+    // Helper methods
     fn updateFromInput(self: *Rotation, camera: *rl.Camera2D, ih: *InputHandler) void {
         const rotate_left = ih.keyboard.activeKeysInclude(&[_]Key{.RightBracket}, .And);
         const rotate_right = ih.keyboard.activeKeysInclude(&[_]Key{.LeftBracket}, .And);
