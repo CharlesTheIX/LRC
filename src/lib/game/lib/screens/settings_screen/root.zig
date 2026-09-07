@@ -51,7 +51,7 @@ pub const SettingsScreen = struct {
     }
 
     fn loadBackground(self: *SettingsScreen) void {
-        const background_texture = rl.loadTexture("./assets/textures/settings_screen_background.png") catch @panic("Failed to load pause screen background texture");
+        const background_texture = rl.loadTexture("./assets/textures/backgrounds/settings_screen_background.png") catch @panic("Failed to load pause screen background texture");
         self.background_texture = background_texture;
     }
 

@@ -2,33 +2,191 @@ const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("../../utils.zig");
 const Game = @import("../../root.zig").Game;
+const Key = @import("../input_handler/root.zig").Key;
+
+const SpriteDirection = enum {
+    Up,
+    Down,
+    Left,
+    Right,
+    UpRight,
+    UpLeft,
+    DownRight,
+    DownLeft,
+
+    pub fn toVector(self: SpriteDirection) rl.Vector2 {
+        switch (self) {
+            .Up => return rl.Vector2.init(0, -1),
+            .Down => return rl.Vector2.init(0, 1),
+            .Left => return rl.Vector2.init(-1, 0),
+            .Right => return rl.Vector2.init(1, 0),
+            .UpRight => return rl.Vector2.init(1, -1),
+            .UpLeft => return rl.Vector2.init(-1, -1),
+            .DownRight => return rl.Vector2.init(1, 1),
+            .DownLeft => return rl.Vector2.init(-1, 1),
+        }
+    }
+
+    pub fn toColor(self: SpriteDirection) rl.Color {
+        switch (self) {
+            .Up => return rl.Color.red,
+            .Down => return rl.Color.green,
+            .Left => return rl.Color.blue,
+            .Right => return rl.Color.yellow,
+            .UpRight => return rl.Color.orange,
+            .UpLeft => return rl.Color.purple,
+            .DownRight => return rl.Color.pink,
+            .DownLeft => return rl.Color.magenta,
+        }
+    }
+
+    pub fn fromVector(vector: rl.Vector2) SpriteDirection {
+        if (vector.x > 0 and vector.y < 0) return .UpRight;
+        if (vector.x < 0 and vector.y < 0) return .UpLeft;
+        if (vector.x > 0 and vector.y > 0) return .DownRight;
+        if (vector.x < 0 and vector.y > 0) return .DownLeft;
+        if (vector.x > 0) return .Right;
+        if (vector.x < 0) return .Left;
+        if (vector.y < 0) return .Up;
+        return .Down;
+    }
+
+    pub fn toString(self: SpriteDirection) []const u8 {
+        switch (self) {
+            .Up => return "Up",
+            .Down => return "Down",
+            .Left => return "Left",
+            .Right => return "Right",
+            .UpRight => return "UpRight",
+            .UpLeft => return "UpLeft",
+            .DownRight => return "DownRight",
+            .DownLeft => return "DownLeft",
+        }
+    }
+};
+
+const SpriteRects = struct { upper: rl.Rectangle, lower: rl.Rectangle, hitbox: rl.Rectangle, core: rl.Rectangle };
 
 const Props = struct { allocator: *std.mem.Allocator };
 
 pub const Player = struct {
+    speed: f32 = 0.0,
     position: rl.Vector2,
+    is_moving: bool = false,
+    base_speed: f32 = 100.0,
+    sprint_speed: f32 = 300.0,
+    is_sprinting: bool = false,
+    target_position: rl.Vector2,
+    name: []const u8 = "Player",
     allocator: *std.mem.Allocator,
+    direction: SpriteDirection = .Down,
+    rects: SpriteRects = .{
+        .core = rl.Rectangle{ .x = 0, .y = 0, .width = 32, .height = 32 },
+        .upper = rl.Rectangle{ .x = 0, .y = 0, .width = 32, .height = 16 }, // the x and y values are offsets for the upper part of the sprite, relative to the core rectangle
+        .lower = rl.Rectangle{ .x = 0, .y = 16, .width = 32, .height = 16 }, // the x and y values are offsets for the lower part of the sprite, relative to the core rectangle
+        .hitbox = rl.Rectangle{ .x = 8, .y = 8, .width = 16, .height = 16 }, // the x and y values are offsets for the hitbox, relative to the core rectangle
+    },
 
+    // Base methods
     pub fn deinit(self: *Player) void {
         _ = self;
     }
 
     pub fn draw(self: *Player) void {
-        const rect = rl.Rectangle{ .x = self.position.x, .y = self.position.y, .width = 32, .height = 32 };
-        rl.drawRectangleRec(rect, rl.Color.blue);
+        self.drawHitbox();
+        self.drawLowerRect();
+        self.drawUpperRect();
+        rl.drawCircleV(self.position, 5.0, rl.Color.red); // Draw the player position as a red circle
     }
 
     pub fn init(props: Props) Player {
-        return Player{ .position = rl.Vector2.zero(), .allocator = props.allocator };
+        return Player{ .position = rl.Vector2.zero(), .target_position = rl.Vector2.zero(), .allocator = props.allocator };
     }
 
     pub fn load(self: *Player, game: *Game) void {
-        _ = game;
+        self.name = game.save_data.name;
         self.position = rl.Vector2.init(100, 100);
+        self.target_position = self.position;
     }
 
     pub fn update(self: *Player, game: *Game) void {
-        _ = self;
-        _ = game;
+        self.updateMovement(game);
+    }
+
+    // Helper methods
+    fn drawHitbox(self: *Player) void {
+        const origin = self.getSpriteOrigin();
+        var rect = self.rects.hitbox;
+        rect.x += origin.x;
+        rect.y += origin.y;
+        rl.drawRectangleRec(rect, SpriteDirection.toColor(self.direction));
+    }
+
+    fn drawLowerRect(self: *Player) void {
+        const origin = self.getSpriteOrigin();
+        var rect = self.rects.lower;
+        rect.x += origin.x;
+        rect.y += origin.y;
+        rl.drawRectangleRec(rect, rl.Color.black.alpha(0.5));
+    }
+
+    fn drawUpperRect(self: *Player) void {
+        const origin = self.getSpriteOrigin();
+        var rect = self.rects.upper;
+        rect.x += origin.x;
+        rect.y += origin.y;
+        rl.drawRectangleRec(rect, rl.Color.white.alpha(0.5));
+    }
+
+    fn getHitboxRect(self: *Player) rl.Rectangle {
+        return self.getHitboxRectAt(self.position);
+    }
+
+    fn getHitboxRectAt(self: *Player, position: rl.Vector2) rl.Rectangle {
+        const origin = rl.Vector2.init(position.x - self.rects.core.width / 2, position.y - self.rects.core.height / 2);
+        var rect = self.rects.hitbox;
+        rect.x += origin.x;
+        rect.y += origin.y;
+        return rect;
+    }
+
+    // self.position is the center of the core sprite rect; parts are offset from its top-left
+    fn getSpriteOrigin(self: *Player) rl.Vector2 {
+        return rl.Vector2.init(self.position.x - self.rects.core.width / 2, self.position.y - self.rects.core.height / 2);
+    }
+
+    fn handleMapEdgeCollision(self: *Player, game: *Game) void {
+        const play_screen = game.play_screen;
+        if (play_screen) |ps| {
+            const map = ps.map;
+            // check against the hitbox at the target position, not the stale current position, otherwise the player overshoots the edge for a frame and snaps back, causing jitter
+            const hitbox_rect = self.getHitboxRectAt(self.target_position);
+            if (hitbox_rect.x < map.rect.x) self.target_position.x = map.rect.x + hitbox_rect.width / 2;
+            if (hitbox_rect.y < map.rect.y) self.target_position.y = map.rect.y + hitbox_rect.height / 2;
+            if (hitbox_rect.x + hitbox_rect.width > map.rect.x + map.rect.width) self.target_position.x = map.rect.x + map.rect.width - hitbox_rect.width / 2;
+            if (hitbox_rect.y + hitbox_rect.height > map.rect.y + map.rect.height) self.target_position.y = map.rect.y + map.rect.height - hitbox_rect.height / 2;
+        }
+    }
+
+    fn updateMovement(self: *Player, game: *Game) void {
+        self.speed = self.base_speed;
+        var move = rl.Vector2.zero();
+        const keyboard = game.input_handler.keyboard;
+        if (keyboard.activeKeysInclude(&[_]Key{ .Up, .W }, .Or)) move.y -= 1;
+        if (keyboard.activeKeysInclude(&[_]Key{ .Down, .S }, .Or)) move.y += 1;
+        if (keyboard.activeKeysInclude(&[_]Key{ .Left, .A }, .Or)) move.x -= 1;
+        if (keyboard.activeKeysInclude(&[_]Key{ .Right, .D }, .Or)) move.x += 1;
+        self.is_moving = move.x != 0 or move.y != 0;
+        self.is_sprinting = self.is_moving and keyboard.activeKeysInclude(&[_]Key{ .LeftShift, .RightShift }, .Or);
+        if (self.is_moving) {
+            const delta_time = rl.getFrameTime();
+            const normalized = move.normalize();
+            if (self.is_sprinting) self.speed = self.sprint_speed;
+            self.direction = SpriteDirection.fromVector(normalized);
+            self.target_position.x += normalized.x * self.speed * delta_time;
+            self.target_position.y += normalized.y * self.speed * delta_time;
+            self.handleMapEdgeCollision(game);
+            self.position = self.target_position;
+        }
     }
 };

@@ -14,7 +14,7 @@ pub const Map = struct {
     }
 
     pub fn draw(self: *Map) void {
-        rl.drawRectangleRec(self.rect, rl.Color.green);
+        rl.drawRectangleRec(self.rect, rl.Color.gray);
     }
 
     pub fn init(props: Props) Map {

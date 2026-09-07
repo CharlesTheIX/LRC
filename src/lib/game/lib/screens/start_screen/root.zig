@@ -60,7 +60,7 @@ pub const StartScreen = struct {
     }
 
     fn loadBackground(self: *StartScreen) void {
-        const background_texture = rl.loadTexture("./assets/textures/start_screen_background.png") catch @panic("Failed to load start screen background texture");
+        const background_texture = rl.loadTexture("./assets/textures/backgrounds/start_screen_background.png") catch @panic("Failed to load start screen background texture");
         self.background_texture = background_texture;
     }
 

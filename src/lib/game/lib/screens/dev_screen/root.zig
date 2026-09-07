@@ -29,6 +29,7 @@ pub const DevScreen = struct {
         switch (self.active_sub_screen) {
             .Home => self.drawHome(),
             .SaveData => self.drawSaveData(game),
+            .PlayerDetails => self.drawPlayerDetails(game),
             .CoreGameDetails => self.drawCoreGameDetails(game),
         }
     }
@@ -45,11 +46,7 @@ pub const DevScreen = struct {
         self.updateNumberKeys(&game.input_handler);
         self.updateToggle(&game.input_handler);
         if (!self.active) return;
-        switch (self.active_sub_screen) {
-            .Home => {},
-            .SaveData => self.updateSubScreen(game),
-            .CoreGameDetails => self.updateSubScreen(game),
-        }
+        self.updateSubScreen(game);
     }
 
     // Helper methods
@@ -64,6 +61,10 @@ pub const DevScreen = struct {
 
     fn drawHome(self: *DevScreen) void {
         utils.drawHome(self);
+    }
+
+    fn drawPlayerDetails(self: *DevScreen, game: *Game) void {
+        utils.drawPlayerDetails(self, game);
     }
 
     fn drawSaveData(self: *DevScreen, game: *Game) void {
@@ -112,6 +113,7 @@ pub const DevScreen = struct {
                 }
                 if (self.numberPressed(.Two)) camera.snap_to_map = !camera.snap_to_map;
             },
+            .PlayerDetails => {},
         }
     }
 
@@ -123,5 +125,6 @@ pub const DevScreen = struct {
         if (self.numberPressed(.One)) self.active_sub_screen = .Home;
         if (self.numberPressed(.Two)) self.active_sub_screen = .CoreGameDetails;
         if (self.numberPressed(.Three)) self.active_sub_screen = .SaveData;
+        if (self.numberPressed(.Four)) self.active_sub_screen = .PlayerDetails;
     }
 };

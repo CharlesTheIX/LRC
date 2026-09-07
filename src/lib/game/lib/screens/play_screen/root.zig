@@ -45,7 +45,6 @@ pub const PlayScreen = struct {
     }
 
     pub fn update(self: *PlayScreen, game: *Game) void {
-        std.debug.print("update\n", .{});
         self.map.update(game);
         self.player.update(game);
         game.camera.update(&game.input_handler, self.player.position, &self.map.rect);
