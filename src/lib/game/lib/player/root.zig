@@ -5,27 +5,14 @@ const Game = @import("../../root.zig").Game;
 const Key = @import("../input_handler/root.zig").Key;
 
 const SpriteDirection = enum {
-    Up,
     Down,
-    Left,
+    DownRight,
     Right,
     UpRight,
+    Up,
     UpLeft,
-    DownRight,
+    Left,
     DownLeft,
-
-    pub fn toVector(self: SpriteDirection) rl.Vector2 {
-        switch (self) {
-            .Up => return rl.Vector2.init(0, -1),
-            .Down => return rl.Vector2.init(0, 1),
-            .Left => return rl.Vector2.init(-1, 0),
-            .Right => return rl.Vector2.init(1, 0),
-            .UpRight => return rl.Vector2.init(1, -1),
-            .UpLeft => return rl.Vector2.init(-1, -1),
-            .DownRight => return rl.Vector2.init(1, 1),
-            .DownLeft => return rl.Vector2.init(-1, 1),
-        }
-    }
 
     pub fn toColor(self: SpriteDirection) rl.Color {
         switch (self) {
@@ -57,10 +44,10 @@ const SpriteDirection = enum {
             .Down => return "Down",
             .Left => return "Left",
             .Right => return "Right",
-            .UpRight => return "UpRight",
             .UpLeft => return "UpLeft",
-            .DownRight => return "DownRight",
+            .UpRight => return "UpRight",
             .DownLeft => return "DownLeft",
+            .DownRight => return "DownRight",
         }
     }
 };
@@ -79,6 +66,7 @@ pub const Player = struct {
     target_position: rl.Vector2,
     name: []const u8 = "Player",
     allocator: *std.mem.Allocator,
+    texture: ?rl.Texture2D = null,
     direction: SpriteDirection = .Down,
     rects: SpriteRects = .{
         .core = rl.Rectangle{ .x = 0, .y = 0, .width = 32, .height = 32 },
@@ -89,14 +77,17 @@ pub const Player = struct {
 
     // Base methods
     pub fn deinit(self: *Player) void {
-        _ = self;
+        if (self.texture) |texture| {
+            rl.unloadTexture(texture);
+            self.texture = null;
+        }
     }
 
     pub fn draw(self: *Player) void {
         self.drawHitbox();
         self.drawLowerRect();
         self.drawUpperRect();
-        rl.drawCircleV(self.position, 5.0, rl.Color.red); // Draw the player position as a red circle
+        self.drawCenter();
     }
 
     pub fn init(props: Props) Player {
@@ -107,6 +98,7 @@ pub const Player = struct {
         self.name = game.save_data.name;
         self.position = rl.Vector2.init(100, 100);
         self.target_position = self.position;
+        self.texture = rl.loadTexture("./assets/sprites/sneasel.png") catch @panic("Failed to load player texture");
     }
 
     pub fn update(self: *Player, game: *Game) void {
@@ -114,6 +106,10 @@ pub const Player = struct {
     }
 
     // Helper methods
+    fn drawCenter(self: *Player) void {
+        rl.drawCircleV(self.position, 5.0, rl.Color.red);
+    }
+
     fn drawHitbox(self: *Player) void {
         const origin = self.getSpriteOrigin();
         var rect = self.rects.hitbox;
@@ -122,23 +118,29 @@ pub const Player = struct {
         rl.drawRectangleRec(rect, SpriteDirection.toColor(self.direction));
     }
 
-    fn drawLowerRect(self: *Player) void {
-        const origin = self.getSpriteOrigin();
-        var rect = self.rects.lower;
-        rect.x += origin.x;
-        rect.y += origin.y;
-        rl.drawRectangleRec(rect, rl.Color.black.alpha(0.5));
+    pub fn drawLowerRect(self: *Player) void {
+        if (self.texture) |texture| {
+            var rect = self.rects.lower;
+            const origin = self.getSpriteOrigin();
+            const src = rl.Rectangle{ .x = rect.x, .y = rect.y, .width = rect.width, .height = rect.height };
+            rect.x += origin.x;
+            rect.y += origin.y;
+            rl.drawTexturePro(texture, src, rect, rl.Vector2.zero(), 0.0, rl.Color.white);
+        }
     }
 
-    fn drawUpperRect(self: *Player) void {
-        const origin = self.getSpriteOrigin();
-        var rect = self.rects.upper;
-        rect.x += origin.x;
-        rect.y += origin.y;
-        rl.drawRectangleRec(rect, rl.Color.white.alpha(0.5));
+    pub fn drawUpperRect(self: *Player) void {
+        if (self.texture) |texture| {
+            var rect = self.rects.upper;
+            const origin = self.getSpriteOrigin();
+            const src = rl.Rectangle{ .x = rect.x, .y = rect.y, .width = rect.width, .height = rect.height };
+            rect.x += origin.x;
+            rect.y += origin.y;
+            rl.drawTexturePro(texture, src, rect, rl.Vector2.zero(), 0.0, rl.Color.white);
+        }
     }
 
-    fn getHitboxRect(self: *Player) rl.Rectangle {
+    pub fn getHitboxRect(self: *Player) rl.Rectangle {
         return self.getHitboxRectAt(self.position);
     }
 
