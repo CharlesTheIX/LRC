@@ -128,7 +128,9 @@ pub const Player = struct {
 
     // Helper methods
     fn drawCenter(self: *Player) void {
-        rl.drawCircleV(self.position, 5.0, rl.Color.red);
+        const hitbox = self.getHitboxRect();
+        const center = rl.Vector2.init(hitbox.x + hitbox.width / 2, hitbox.y + hitbox.height / 2);
+        rl.drawCircleV(center, 5.0, rl.Color.red);
     }
 
     fn drawHitbox(self: *Player) void {
@@ -166,16 +168,24 @@ pub const Player = struct {
     }
 
     fn getHitboxRectAt(self: *Player, position: rl.Vector2) rl.Rectangle {
-        const origin = rl.Vector2.init(position.x - self.rects.core.width / 2, position.y - self.rects.core.height / 2);
-        var rect = self.rects.hitbox;
-        rect.x += origin.x;
-        rect.y += origin.y;
-        return rect;
+        return rl.Rectangle{
+            .x = position.x - self.rects.hitbox.width / 2,
+            .y = position.y - self.rects.hitbox.height / 2,
+            .width = self.rects.hitbox.width,
+            .height = self.rects.hitbox.height,
+        };
     }
 
-    // self.position is the center of the core sprite rect; parts are offset from its top-left
+    // self.position is the center of the hitbox; parts are offset from the core sprite's top-left
     fn getSpriteOrigin(self: *Player) rl.Vector2 {
-        return rl.Vector2.init(self.position.x - self.rects.core.width / 2, self.position.y - self.rects.core.height / 2);
+        const hitbox_center_offset = rl.Vector2.init(
+            self.rects.hitbox.x + self.rects.hitbox.width / 2,
+            self.rects.hitbox.y + self.rects.hitbox.height / 2,
+        );
+        return rl.Vector2.init(
+            self.position.x - hitbox_center_offset.x,
+            self.position.y - hitbox_center_offset.y,
+        );
     }
 
     fn handleMapEdgeCollision(self: *Player, game: *Game) void {
