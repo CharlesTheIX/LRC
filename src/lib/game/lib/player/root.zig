@@ -56,6 +56,27 @@ const SpriteRects = struct { upper: rl.Rectangle, lower: rl.Rectangle, hitbox: r
 
 const Props = struct { allocator: *std.mem.Allocator };
 
+const SpriteAction = enum {
+    Idle,
+    Walk,
+    Run,
+};
+
+const SpriteName = enum {
+    Sneasel,
+
+    pub fn getSpriteRects(self: SpriteName) SpriteRects {
+        switch (self) {
+            .Sneasel => return SpriteRects{
+                .core = rl.Rectangle{ .x = 0, .y = 0, .width = 32, .height = 32 },
+                .upper = rl.Rectangle{ .x = 0, .y = 0, .width = 32, .height = 16 },
+                .lower = rl.Rectangle{ .x = 0, .y = 16, .width = 32, .height = 16 },
+                .hitbox = rl.Rectangle{ .x = 4, .y = 17, .width = 20, .height = 13 },
+            },
+        }
+    }
+};
+
 pub const Player = struct {
     speed: f32 = 0.0,
     position: rl.Vector2,
@@ -69,10 +90,10 @@ pub const Player = struct {
     texture: ?rl.Texture2D = null,
     direction: SpriteDirection = .Down,
     rects: SpriteRects = .{
-        .core = rl.Rectangle{ .x = 0, .y = 0, .width = 32, .height = 32 },
-        .upper = rl.Rectangle{ .x = 0, .y = 0, .width = 32, .height = 16 }, // the x and y values are offsets for the upper part of the sprite, relative to the core rectangle
-        .lower = rl.Rectangle{ .x = 0, .y = 16, .width = 32, .height = 16 }, // the x and y values are offsets for the lower part of the sprite, relative to the core rectangle
-        .hitbox = rl.Rectangle{ .x = 8, .y = 8, .width = 16, .height = 16 }, // the x and y values are offsets for the hitbox, relative to the core rectangle
+        .core = rl.Rectangle{ .x = 0, .y = 0, .width = 28, .height = 33 },
+        .upper = rl.Rectangle{ .x = 0, .y = 0, .width = 28, .height = 17 }, // the x and y values are offsets for the upper part of the sprite, relative to the core rectangle
+        .lower = rl.Rectangle{ .x = 0, .y = 17, .width = 28, .height = 16 }, // the x and y values are offsets for the lower part of the sprite, relative to the core rectangle
+        .hitbox = rl.Rectangle{ .x = 4, .y = 17, .width = 20, .height = 13 }, // the x and y values are offsets for the hitbox, relative to the core rectangle
     },
 
     // Base methods
@@ -98,7 +119,7 @@ pub const Player = struct {
         self.name = game.save_data.name;
         self.position = rl.Vector2.init(100, 100);
         self.target_position = self.position;
-        self.texture = rl.loadTexture("./assets/sprites/sneasel.png") catch @panic("Failed to load player texture");
+        self.texture = rl.loadTexture("./assets/sprites/snorelax.png") catch @panic("Failed to load player texture");
     }
 
     pub fn update(self: *Player, game: *Game) void {
