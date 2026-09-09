@@ -4,6 +4,8 @@ const utils = @import("../../utils.zig");
 const Game = @import("../../root.zig").Game;
 const Key = @import("../input_handler/root.zig").Key;
 
+const SpriteAction = enum { Idle, Walk, Run };
+
 const SpriteDirection = enum {
     Down,
     DownRight,
@@ -13,19 +15,6 @@ const SpriteDirection = enum {
     UpLeft,
     Left,
     DownLeft,
-
-    pub fn toColor(self: SpriteDirection) rl.Color {
-        switch (self) {
-            .Up => return rl.Color.red,
-            .Down => return rl.Color.green,
-            .Left => return rl.Color.blue,
-            .Right => return rl.Color.yellow,
-            .UpRight => return rl.Color.orange,
-            .UpLeft => return rl.Color.purple,
-            .DownRight => return rl.Color.pink,
-            .DownLeft => return rl.Color.magenta,
-        }
-    }
 
     pub fn fromVector(vector: rl.Vector2) SpriteDirection {
         if (vector.x > 0 and vector.y < 0) return .UpRight;
@@ -52,16 +41,6 @@ const SpriteDirection = enum {
     }
 };
 
-const SpriteRects = struct { upper: rl.Rectangle, lower: rl.Rectangle, hitbox: rl.Rectangle, core: rl.Rectangle };
-
-const Props = struct { allocator: *std.mem.Allocator };
-
-const SpriteAction = enum {
-    Idle,
-    Walk,
-    Run,
-};
-
 const SpriteName = enum {
     Sneasel,
 
@@ -77,17 +56,25 @@ const SpriteName = enum {
     }
 };
 
+const SpriteRects = struct { upper: rl.Rectangle, lower: rl.Rectangle, hitbox: rl.Rectangle, core: rl.Rectangle };
+
+const Props = struct { allocator: *std.mem.Allocator };
+
 pub const Player = struct {
     speed: f32 = 0.0,
+    walk_frame: u8 = 0,
     position: rl.Vector2,
     is_moving: bool = false,
     base_speed: f32 = 100.0,
-    sprint_speed: f32 = 300.0,
+    walk_frame_count: u8 = 4,
+    sprint_speed: f32 = 200.0,
     is_sprinting: bool = false,
     target_position: rl.Vector2,
     name: []const u8 = "Player",
     allocator: *std.mem.Allocator,
+    walk_frame_elapsed: f32 = 0.0,
     texture: ?rl.Texture2D = null,
+    walk_frame_duration: f32 = 0.12,
     direction: SpriteDirection = .Down,
     rects: SpriteRects = .{
         .core = rl.Rectangle{ .x = 0, .y = 0, .width = 28, .height = 33 },
@@ -95,13 +82,6 @@ pub const Player = struct {
         .lower = rl.Rectangle{ .x = 0, .y = 17, .width = 28, .height = 16 }, // the x and y values are offsets for the lower part of the sprite, relative to the core rectangle
         .hitbox = rl.Rectangle{ .x = 4, .y = 17, .width = 20, .height = 13 }, // the x and y values are offsets for the hitbox, relative to the core rectangle
     },
-
-    fn getActiveFrame(self: *Player) rl.Rectangle {
-        var core = self.rects.core;
-        const direction_multiplier = @as(f32, @floatFromInt(@intFromEnum(self.direction)));
-        core.y = core.height * direction_multiplier;
-        return core;
-    }
 
     // Base methods
     pub fn deinit(self: *Player) void {
@@ -141,11 +121,11 @@ pub const Player = struct {
     }
 
     fn drawHitbox(self: *Player) void {
-        const origin = self.getSpriteOrigin();
         var rect = self.rects.hitbox;
+        const origin = self.getSpriteOrigin();
         rect.x += origin.x;
         rect.y += origin.y;
-        rl.drawRectangleRec(rect, SpriteDirection.toColor(self.direction));
+        rl.drawRectangleRec(rect, rl.Color.red.alpha(0.5));
     }
 
     pub fn drawLowerRect(self: *Player) void {
@@ -172,6 +152,15 @@ pub const Player = struct {
         }
     }
 
+    fn getActiveFrame(self: *Player) rl.Rectangle {
+        var core = self.rects.core;
+        const frame_multiplier = @as(f32, @floatFromInt(self.walk_frame));
+        const direction_multiplier = @as(f32, @floatFromInt(@intFromEnum(self.direction)));
+        core.x = core.width * frame_multiplier;
+        core.y = core.height * direction_multiplier;
+        return core;
+    }
+
     pub fn getHitboxRect(self: *Player) rl.Rectangle {
         return self.getHitboxRectAt(self.position);
     }
@@ -187,14 +176,8 @@ pub const Player = struct {
 
     // self.position is the center of the hitbox; parts are offset from the core sprite's top-left
     fn getSpriteOrigin(self: *Player) rl.Vector2 {
-        const hitbox_center_offset = rl.Vector2.init(
-            self.rects.hitbox.x + self.rects.hitbox.width / 2,
-            self.rects.hitbox.y + self.rects.hitbox.height / 2,
-        );
-        return rl.Vector2.init(
-            self.position.x - hitbox_center_offset.x,
-            self.position.y - hitbox_center_offset.y,
-        );
+        const hitbox_center_offset = rl.Vector2.init(self.rects.hitbox.x + self.rects.hitbox.width / 2, self.rects.hitbox.y + self.rects.hitbox.height / 2);
+        return rl.Vector2.init(self.position.x - hitbox_center_offset.x, self.position.y - hitbox_center_offset.y);
     }
 
     fn handleMapEdgeCollision(self: *Player, game: *Game) void {
@@ -218,17 +201,38 @@ pub const Player = struct {
         if (keyboard.activeKeysInclude(&[_]Key{ .Down, .S }, .Or)) move.y += 1;
         if (keyboard.activeKeysInclude(&[_]Key{ .Left, .A }, .Or)) move.x -= 1;
         if (keyboard.activeKeysInclude(&[_]Key{ .Right, .D }, .Or)) move.x += 1;
+        const was_moving = self.is_moving;
+        const delta_time = rl.getFrameTime();
         self.is_moving = move.x != 0 or move.y != 0;
         self.is_sprinting = self.is_moving and keyboard.activeKeysInclude(&[_]Key{ .LeftShift, .RightShift }, .Or);
+        if (self.is_sprinting) self.speed = self.sprint_speed;
+        self.updateWalkFrame(delta_time, self.is_moving and !was_moving);
         if (self.is_moving) {
-            const delta_time = rl.getFrameTime();
             const normalized = move.normalize();
-            if (self.is_sprinting) self.speed = self.sprint_speed;
             self.direction = SpriteDirection.fromVector(normalized);
             self.target_position.x += normalized.x * self.speed * delta_time;
             self.target_position.y += normalized.y * self.speed * delta_time;
             self.handleMapEdgeCollision(game);
             self.position = self.target_position;
+        }
+    }
+
+    fn updateWalkFrame(self: *Player, delta_time: f32, started_moving: bool) void {
+        if (!self.is_moving) {
+            self.walk_frame = 0;
+            self.walk_frame_elapsed = 0.0;
+            return;
+        }
+        if (started_moving) {
+            self.walk_frame = 1;
+            self.walk_frame_elapsed = 0.0;
+            return;
+        }
+        const speed_multiplier = if (self.base_speed > 0.0) self.speed / self.base_speed else 1.0;
+        self.walk_frame_elapsed += delta_time * speed_multiplier;
+        while (self.walk_frame_elapsed >= self.walk_frame_duration) {
+            self.walk_frame_elapsed -= self.walk_frame_duration;
+            self.walk_frame = (self.walk_frame + 1) % self.walk_frame_count;
         }
     }
 };
