@@ -96,6 +96,13 @@ pub const Player = struct {
         .hitbox = rl.Rectangle{ .x = 4, .y = 17, .width = 20, .height = 13 }, // the x and y values are offsets for the hitbox, relative to the core rectangle
     },
 
+    fn getActiveFrame(self: *Player) rl.Rectangle {
+        var core = self.rects.core;
+        const direction_multiplier = @as(f32, @floatFromInt(@intFromEnum(self.direction)));
+        core.y = core.height * direction_multiplier;
+        return core;
+    }
+
     // Base methods
     pub fn deinit(self: *Player) void {
         if (self.texture) |texture| {
@@ -144,8 +151,9 @@ pub const Player = struct {
     pub fn drawLowerRect(self: *Player) void {
         if (self.texture) |texture| {
             var rect = self.rects.lower;
+            const frame = self.getActiveFrame();
             const origin = self.getSpriteOrigin();
-            const src = rl.Rectangle{ .x = rect.x, .y = rect.y, .width = rect.width, .height = rect.height };
+            const src = rl.Rectangle{ .x = frame.x + rect.x, .y = frame.y + rect.y, .width = rect.width, .height = rect.height };
             rect.x += origin.x;
             rect.y += origin.y;
             rl.drawTexturePro(texture, src, rect, rl.Vector2.zero(), 0.0, rl.Color.white);
@@ -155,8 +163,9 @@ pub const Player = struct {
     pub fn drawUpperRect(self: *Player) void {
         if (self.texture) |texture| {
             var rect = self.rects.upper;
+            const frame = self.getActiveFrame();
             const origin = self.getSpriteOrigin();
-            const src = rl.Rectangle{ .x = rect.x, .y = rect.y, .width = rect.width, .height = rect.height };
+            const src = rl.Rectangle{ .x = frame.x + rect.x, .y = frame.y + rect.y, .width = rect.width, .height = rect.height };
             rect.x += origin.x;
             rect.y += origin.y;
             rl.drawTexturePro(texture, src, rect, rl.Vector2.zero(), 0.0, rl.Color.white);
