@@ -34,7 +34,7 @@ pub const PlayScreen = struct {
             .font_size = props.font_size,
             .allocator = props.allocator,
             .map = Map.init(.{ .allocator = props.allocator }),
-            .player = Player.init(.{ .allocator = props.allocator, .sprite_name = "scyther" }),
+            .player = Player.init(.{ .allocator = props.allocator, .sprite_name = "pikachu" }),
         };
     }
 
