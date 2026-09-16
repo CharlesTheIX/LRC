@@ -6,20 +6,20 @@ const sprite = @import("../sprite/root.zig");
 const Key = @import("../input_handler/root.zig").Key;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
-const Speed = struct { base: f32, sprint: f32, current: f32 = 0.0 };
+// const Speed = struct { base: f32, sprint: f32, current: f32 = 0.0 };
 const Position = struct { current: rl.Vector2 = rl.Vector2.zero(), target: rl.Vector2 = rl.Vector2.zero() };
 
 const Props = struct { allocator: *std.mem.Allocator, sprite_name: []const u8 };
 pub const Player = struct {
-    speed: Speed,
-    rects: sprite.Rects,
-    walk: sprite.WalkData,
+    speed: ?f32,
     name: []const u8 = "",
     is_moving: bool = false,
     position: Position = .{},
     is_sprinting: bool = false,
+    sprite_data: sprite.Pokemon,
     allocator: *std.mem.Allocator,
     texture: ?rl.Texture2D = null,
+    action: sprite.Action = .Walk,
     direction: sprite.Direction = .Down,
 
     // Base methods
@@ -44,11 +44,10 @@ pub const Player = struct {
                 const texture_path_z = sliceToZSlice(props.allocator, config.texture_path) catch @panic("Failed to convert texture path to Z slice");
                 defer props.allocator.free(texture_path_z);
                 return Player{
-                    .rects = config.rects,
+                    .rects = config.walk_data.rects,
+                    .speed = config.walk_data.speed,
                     .allocator = props.allocator,
-                    .speed = .{ .base = config.base_speed, .sprint = config.sprint_speed },
                     .texture = rl.loadTexture(texture_path_z) catch @panic("Failed to load player texture"),
-                    .walk = .{ .frame_count = config.walk_frame_count, .frame_duration = config.walk_frame_duration },
                 };
             },
         };
