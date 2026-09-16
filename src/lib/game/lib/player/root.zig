@@ -10,7 +10,6 @@ const Position = struct { current: rl.Vector2 = rl.Vector2.zero(), target: rl.Ve
 
 const Props = struct { allocator: *std.mem.Allocator, sprite_name: []const u8 };
 pub const Player = struct {
-    speed: ?f32,
     name: []const u8 = "",
     is_moving: bool = false,
     position: Position = .{},
@@ -21,27 +20,8 @@ pub const Player = struct {
     action: sprite.Action = .Walk,
     direction: sprite.Direction = .Down,
 
-    fn actionData(self: *const Player) ?sprite.ActionData {
-        return switch (self.sprite_data) {
-            .Pikachu => |pokemon| switch (self.action) {
-                .Walk => pokemon.walk_data,
-                .Run => pokemon.run_data,
-                .Sleep => pokemon.sleep_data,
-                else => pokemon.walk_data,
-            },
-            .Scyther => |pokemon| switch (self.action) {
-                .Walk => pokemon.walk_data,
-                .Run => pokemon.run_data,
-                .Sleep => null,
-                else => pokemon.walk_data,
-            },
-            .Snorelax => |pokemon| switch (self.action) {
-                .Walk => pokemon.walk_data,
-                .Run => pokemon.run_data,
-                .Sleep => pokemon.sleep_data,
-                else => pokemon.walk_data,
-            },
-        };
+    pub fn actionData(self: *const Player) ?sprite.ActionData {
+        return self.sprite_data.actionData(self.action);
     }
 
     pub fn rects(self: *const Player) ?sprite.Rects {
@@ -51,20 +31,6 @@ pub const Player = struct {
         const lower = data.rects.lower orelse return null;
         const hitbox = data.rects.hitbox orelse return null;
         return .{ .upper = upper, .lower = lower, .hitbox = hitbox, .core = core };
-    }
-
-    pub fn baseSpeed(self: *const Player) f32 {
-        const data = self.actionData() orelse return 100.0;
-        return data.speed orelse 100.0;
-    }
-
-    pub fn sprintSpeed(self: *const Player) f32 {
-        const base_speed = self.baseSpeed();
-        return if (base_speed > 0.0) base_speed * 2.0 else 200.0;
-    }
-
-    pub fn currentSpeed(self: *const Player) f32 {
-        return self.speed orelse self.baseSpeed();
     }
 
     pub fn deinit(self: *Player) void {
@@ -83,11 +49,6 @@ pub const Player = struct {
 
     pub fn init(props: Props) Player {
         const pokemon = sprite.Pokemon.fromString(props.sprite_name);
-        const walk_speed: f32 = switch (pokemon) {
-            .Pikachu => |config| if (config.walk_data) |walk_data| walk_data.speed orelse 100.0 else 100.0,
-            .Scyther => |config| config.walk_data.speed orelse 100.0,
-            .Snorelax => |config| if (config.walk_data) |walk_data| walk_data.speed orelse 100.0 else 100.0,
-        };
         const texture_path = switch (pokemon) {
             .Pikachu => |config| config.texture_path,
             .Scyther => |config| config.texture_path,
@@ -98,7 +59,6 @@ pub const Player = struct {
         const texture = rl.loadTexture(texture_path_z) catch @panic("Failed to load player texture");
 
         return Player{
-            .speed = walk_speed,
             .sprite_data = pokemon,
             .allocator = props.allocator,
             .texture = texture,
@@ -224,32 +184,25 @@ pub const Player = struct {
     }
 
     fn updateMovement(self: *Player, game: *Game) void {
-        self.speed = self.baseSpeed();
         var move = rl.Vector2.zero();
         const keyboard = game.input_handler.keyboard;
         if (keyboard.activeKeysInclude(&[_]Key{ .Up, .W }, .Or)) move.y -= 1;
         if (keyboard.activeKeysInclude(&[_]Key{ .Down, .S }, .Or)) move.y += 1;
         if (keyboard.activeKeysInclude(&[_]Key{ .Left, .A }, .Or)) move.x -= 1;
         if (keyboard.activeKeysInclude(&[_]Key{ .Right, .D }, .Or)) move.x += 1;
-        const was_moving = self.is_moving;
         const delta_time = rl.getFrameTime();
         self.is_moving = move.x != 0 or move.y != 0;
         self.is_sprinting = self.is_moving and keyboard.activeKeysInclude(&[_]Key{ .LeftShift, .RightShift }, .Or);
-        if (self.is_sprinting) self.speed = self.sprintSpeed();
-        self.updateWalkFrame(delta_time, self.is_moving and !was_moving);
+        self.action = if (self.is_sprinting) .Run else .Walk;
         if (self.is_moving) {
             const normalized = move.normalize();
             self.direction = sprite.Direction.fromVector(normalized);
-            const move_speed = self.speed orelse self.baseSpeed();
+            const action_data = self.actionData() orelse return;
+            const move_speed = action_data.speed orelse 0.0;
             self.position.target.x += normalized.x * move_speed * delta_time;
             self.position.target.y += normalized.y * move_speed * delta_time;
             self.handleMapEdgeCollision(game);
             self.position.current = self.position.target;
         }
-    }
-
-    fn updateWalkFrame(_: *Player, _: f32, _: bool) void {
-        // Frame selection is derived from the Pokémon action timing in getActiveFrame(),
-        // so no stored walk state is needed on the Player struct.
     }
 };

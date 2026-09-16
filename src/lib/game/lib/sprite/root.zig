@@ -30,7 +30,7 @@ const Pikachu = struct {
     texture_path: []const u8 = "./assets/sprites/pikachu.png",
     walk_data: ?ActionData = .{
         .speed = 100.0,
-        .timeout = null,
+        .timeout = 5.0,
         .frame_count = 4,
         .frame_duration = 0.12,
         .spritesheet_offset = rl.Vector2.zero(),
@@ -76,9 +76,26 @@ const Pikachu = struct {
     },
     sleep_data: ?ActionData = .{
         .speed = null,
-        .timeout = 5.0,
+        .timeout = null,
         .frame_count = 4,
         .frame_duration = 0.05,
+        .spritesheet_offset = rl.Vector2.init(0, 224),
+        .directions = .{
+            .left = rl.Vector2.init(0, 28),
+            .right = rl.Vector2.init(0, 0),
+        },
+        .rects = .{
+            .core = rl.Rectangle{ .x = 0, .y = 0, .width = 28, .height = 28 },
+            .upper = rl.Rectangle{ .x = 0, .y = 0, .width = 28, .height = 12 }, // the x and y values are offsets for the upper part of the sprite, relative to the core rectangle
+            .lower = rl.Rectangle{ .x = 0, .y = 12, .width = 28, .height = 16 }, // the x and y values are offsets for the lower part of the sprite, relative to the core rectangle
+            .hitbox = rl.Rectangle{ .x = 7, .y = 17, .width = 13, .height = 7 }, // the x and y values are offsets for the hitbox, relative to the core rectangle
+        },
+    },
+    idle_data: ?ActionData = .{
+        .speed = null,
+        .timeout = 5.0,
+        .frame_count = 4,
+        .frame_duration = 0.12,
         .spritesheet_offset = rl.Vector2.init(0, 224),
         .directions = .{
             .left = rl.Vector2.init(0, 28),
@@ -146,6 +163,7 @@ const Scyther = struct {
         },
     },
     sleep_data: ?Action = null,
+    idle_data: ?ActionData = null,
 
     pub fn init() Scyther {
         return Scyther{};
@@ -201,6 +219,7 @@ const Snorelax = struct {
         },
     },
     sleep_data: ?ActionData = null,
+    idle_data: ?ActionData = null,
 
     pub fn init() Snorelax {
         return Snorelax{};
@@ -211,6 +230,29 @@ pub const Pokemon = union(enum) {
     Pikachu: Pikachu,
     Scyther: Scyther,
     Snorelax: Snorelax,
+
+    pub fn actionData(self: *const Pokemon, action: Action) ?ActionData {
+        return switch (self.*) {
+            .Pikachu => |pokemon| switch (action) {
+                .Walk => pokemon.walk_data,
+                .Run => pokemon.run_data,
+                .Sleep => pokemon.sleep_data,
+                else => pokemon.walk_data,
+            },
+            .Scyther => |pokemon| switch (action) {
+                .Walk => pokemon.walk_data,
+                .Run => pokemon.run_data,
+                .Sleep => null,
+                else => pokemon.walk_data,
+            },
+            .Snorelax => |pokemon| switch (action) {
+                .Walk => pokemon.walk_data,
+                .Run => pokemon.run_data,
+                .Sleep => pokemon.sleep_data,
+                else => pokemon.walk_data,
+            },
+        };
+    }
 
     pub fn fromString(s: []const u8) Pokemon {
         if (std.mem.eql(u8, s, "pikachu")) return .{ .Pikachu = Pikachu.init() };

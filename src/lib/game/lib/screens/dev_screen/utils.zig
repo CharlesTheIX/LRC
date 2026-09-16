@@ -402,26 +402,34 @@ pub fn drawPlayerDetails(self: *DevScreen, game: *Game) void {
         defer self.allocator.free(is_sprinting_content_str);
         rl.drawTextEx(self.font, is_sprinting_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
-        // Draw Speed
+        const action_data = player.actionData() orelse return;
+        // Draw Action Speed
         draw_pos.y += font_size_f32 * 2;
-        const speed_content = std.fmt.bufPrint(&buffer, "Speed: {d:.2}", .{player.currentSpeed()}) catch "";
+        const speed_content = std.fmt.bufPrint(&buffer, "Action Speed: {d:.2}", .{action_data.speed orelse 0.0}) catch "";
         const speed_content_str = core_utils.sliceToZSlice(self.allocator, speed_content) catch @panic("Failed to allocate memory for speed_content_str");
         defer self.allocator.free(speed_content_str);
         rl.drawTextEx(self.font, speed_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
-        // Draw Base Speed
+        // Draw Frame Count
         draw_pos.y += font_size_f32 * 2;
-        const base_speed_content = std.fmt.bufPrint(&buffer, "Base Speed: {d:.2}", .{player.baseSpeed()}) catch "";
-        const base_speed_content_str = core_utils.sliceToZSlice(self.allocator, base_speed_content) catch @panic("Failed to allocate memory for base_speed_content_str");
-        defer self.allocator.free(base_speed_content_str);
-        rl.drawTextEx(self.font, base_speed_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
+        const frame_count_content = std.fmt.bufPrint(&buffer, "Frame Count: {d}", .{action_data.frame_count orelse 1}) catch "";
+        const frame_count_content_str = core_utils.sliceToZSlice(self.allocator, frame_count_content) catch @panic("Failed to allocate memory for frame_count_content_str");
+        defer self.allocator.free(frame_count_content_str);
+        rl.drawTextEx(self.font, frame_count_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
-        // Draw Sprint Speed
+        // Draw Frame Duration
         draw_pos.y += font_size_f32 * 2;
-        const sprint_speed_content = std.fmt.bufPrint(&buffer, "Sprint Speed: {d:.2}", .{player.sprintSpeed()}) catch "";
-        const sprint_speed_content_str = core_utils.sliceToZSlice(self.allocator, sprint_speed_content) catch @panic("Failed to allocate memory for sprint_speed_content_str");
-        defer self.allocator.free(sprint_speed_content_str);
-        rl.drawTextEx(self.font, sprint_speed_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
+        const frame_duration_content = std.fmt.bufPrint(&buffer, "Frame Duration: {d:.2}", .{action_data.frame_duration orelse 0.12}) catch "";
+        const frame_duration_content_str = core_utils.sliceToZSlice(self.allocator, frame_duration_content) catch @panic("Failed to allocate memory for frame_duration_content_str");
+        defer self.allocator.free(frame_duration_content_str);
+        rl.drawTextEx(self.font, frame_duration_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
+        buffer = undefined;
+        // Draw Action Timeout
+        draw_pos.y += font_size_f32 * 2;
+        const timeout_content = std.fmt.bufPrint(&buffer, "Action Timeout: {d:.2}", .{action_data.timeout orelse 0.0}) catch "";
+        const timeout_content_str = core_utils.sliceToZSlice(self.allocator, timeout_content) catch @panic("Failed to allocate memory for timeout_content_str");
+        defer self.allocator.free(timeout_content_str);
+        rl.drawTextEx(self.font, timeout_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
         // Draw Direction
         draw_pos.y += font_size_f32 * 2;
