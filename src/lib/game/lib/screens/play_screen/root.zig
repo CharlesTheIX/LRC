@@ -34,7 +34,7 @@ pub const PlayScreen = struct {
             .font_size = props.font_size,
             .allocator = props.allocator,
             .map = Map.init(.{ .allocator = props.allocator }),
-            .player = Player.init(.{ .allocator = props.allocator }),
+            .player = Player.init(.{ .allocator = props.allocator, .sprite_name = "scyther" }),
         };
     }
 
@@ -47,7 +47,7 @@ pub const PlayScreen = struct {
     pub fn update(self: *PlayScreen, game: *Game) void {
         self.map.update(game);
         self.player.update(game);
-        game.camera.update(&game.input_handler, self.player.position, &self.map.rect);
+        game.camera.update(&game.input_handler, self.player.position.current, &self.map.rect);
     }
 
     // Helper methods
@@ -55,7 +55,7 @@ pub const PlayScreen = struct {
         game.camera.setZoom(10.0);
         game.camera.state = .Follow;
         game.camera.snap_to_map = true;
-        game.camera.setTarget(self.player.position);
+        game.camera.setTarget(self.player.position.current);
         game.camera.camera2D.offset = utils.getCenterVector2OfRect(utils.getWindowRect());
         game.camera.snapToMap(&self.map.rect);
     }
