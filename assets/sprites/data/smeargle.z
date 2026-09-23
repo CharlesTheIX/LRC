@@ -1,0 +1,38 @@
+# Base Data
+texture_path:./assets/sprites/textures/smeargle.png
+
+# Idle Data
+idle_speed:null
+idle_timeout:5.0
+idle_frame_count:2
+idle_frame_duration:0.12
+idle_spritesheet_offset:0,0
+idle_rects:core=0,0,32,30;upper=0,0,32,12;lower=0,12,32,18;hitbox=5,12,22,16
+idle_direction_offsets:down=0,0;down_right=0,30;right=0,60;up_right=0,90;up=0,120;up_left=0,150;left=0,180;down_left=0,210;
+
+# Rest Data
+rest_speed:null
+rest_timeout:10.0
+rest_frame_count:2
+rest_frame_duration:0.12
+rest_spritesheet_offset:0,480
+rest_rects:core=0,0,32,30;upper=0,0,32,12;lower=0,12,32,18;hitbox=5,12,22,16
+rest_direction_offsets:down_left=0,0;
+
+# Run Data
+rest_speed:200.0
+rest_timeout:null
+rest_frame_count:4
+rest_frame_duration:0.08
+rest_spritesheet_offset:0,240
+rest_rects:core=0,0,32,30;upper=0,0,32,12;lower=0,12,32,18;hitbox=5,12,22,16
+idle_direction_offsets:down=0,0;down_right=0,30;right=0,60;up_right=0,90;up=0,120;up_left=0,150;left=0,180;down_left=0,210;
+
+# Walk Data
+rest_speed:100.0
+rest_timeout:null
+rest_frame_count:4
+rest_frame_duration:0.12
+rest_spritesheet_offset:0,240
+rest_rects:core=0,0,32,30;upper=0,0,32,12;lower=0,12,32,18;hitbox=5,12,22,16
+idle_direction_offsets:down=0,0;down_right=0,30;right=0,60;up_right=0,90;up=0,120;up_left=0,150;left=0,180;down_left=0,210;

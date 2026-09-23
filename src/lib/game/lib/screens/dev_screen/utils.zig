@@ -372,6 +372,13 @@ pub fn drawPlayerDetails(self: *DevScreen, game: *Game) void {
         defer self.allocator.free(player_name_str);
         rl.drawTextEx(self.font, player_name_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
+        // Draw Player Sprite
+        draw_pos.y += font_size_f32 * 2;
+        const sprite_content = std.fmt.bufPrint(&buffer, "Sprite: {s}", .{@tagName(player.sprite_data)}) catch "";
+        const sprite_content_str = core_utils.sliceToZSlice(self.allocator, sprite_content) catch @panic("Failed to allocate memory for sprite_content_str");
+        defer self.allocator.free(sprite_content_str);
+        rl.drawTextEx(self.font, sprite_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
+        buffer = undefined;
         // Draw Player Target Position
         draw_pos.y += font_size_f32 * 2;
         const target_position = player.position.target;
@@ -401,6 +408,34 @@ pub fn drawPlayerDetails(self: *DevScreen, game: *Game) void {
         const is_sprinting_content_str = core_utils.sliceToZSlice(self.allocator, is_sprinting_content) catch @panic("Failed to allocate memory for is_sprinting_content_str");
         defer self.allocator.free(is_sprinting_content_str);
         rl.drawTextEx(self.font, is_sprinting_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
+        buffer = undefined;
+        // Draw Action
+        draw_pos.y += font_size_f32 * 2;
+        const action_content = std.fmt.bufPrint(&buffer, "Action: {s}", .{@tagName(player.action)}) catch "";
+        const action_content_str = core_utils.sliceToZSlice(self.allocator, action_content) catch @panic("Failed to allocate memory for action_content_str");
+        defer self.allocator.free(action_content_str);
+        rl.drawTextEx(self.font, action_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
+        buffer = undefined;
+        // Draw Action Elapsed Time
+        draw_pos.y += font_size_f32;
+        const action_elapsed_content = std.fmt.bufPrint(&buffer, "Action Elapsed: {d:.2} seconds", .{player.action_elapsed}) catch "";
+        const action_elapsed_content_str = core_utils.sliceToZSlice(self.allocator, action_elapsed_content) catch @panic("Failed to allocate memory for action_elapsed_content_str");
+        defer self.allocator.free(action_elapsed_content_str);
+        rl.drawTextEx(self.font, action_elapsed_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
+        buffer = undefined;
+        // Draw Allocator
+        draw_pos.y += font_size_f32;
+        const allocator_content = std.fmt.bufPrint(&buffer, "Allocator: {*}", .{player.allocator}) catch "";
+        const allocator_content_str = core_utils.sliceToZSlice(self.allocator, allocator_content) catch @panic("Failed to allocate memory for allocator_content_str");
+        defer self.allocator.free(allocator_content_str);
+        rl.drawTextEx(self.font, allocator_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
+        buffer = undefined;
+        // Draw Texture State
+        draw_pos.y += font_size_f32;
+        const texture_content = std.fmt.bufPrint(&buffer, "Texture Loaded: {s}", .{if (player.texture != null) "Yes" else "No"}) catch "";
+        const texture_content_str = core_utils.sliceToZSlice(self.allocator, texture_content) catch @panic("Failed to allocate memory for texture_content_str");
+        defer self.allocator.free(texture_content_str);
+        rl.drawTextEx(self.font, texture_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
         const action_data = player.actionData() orelse return;
         // Draw Action Speed
@@ -441,28 +476,32 @@ pub fn drawPlayerDetails(self: *DevScreen, game: *Game) void {
         // Draw Core Rect
         draw_pos.y += font_size_f32 * 2;
         const rects = player.rects() orelse return;
-        const core_rect_content = std.fmt.bufPrint(&buffer, "Core Rect: ({d}, {d}, {d}, {d})", .{ rects.core.x, rects.core.y, rects.core.width, rects.core.height }) catch "";
+        const core_rect = rects.core orelse return;
+        const upper_rect = rects.upper orelse return;
+        const lower_rect = rects.lower orelse return;
+        const hitbox_rect = rects.hitbox orelse return;
+        const core_rect_content = std.fmt.bufPrint(&buffer, "Core Rect: ({d}, {d}, {d}, {d})", .{ core_rect.x, core_rect.y, core_rect.width, core_rect.height }) catch "";
         const core_rect_content_str = core_utils.sliceToZSlice(self.allocator, core_rect_content) catch @panic("Failed to allocate memory for core_rect_content_str");
         defer self.allocator.free(core_rect_content_str);
         rl.drawTextEx(self.font, core_rect_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
         // Draw Upper Rect
         draw_pos.y += font_size_f32 * 2;
-        const upper_rect_content = std.fmt.bufPrint(&buffer, "Upper Rect: ({d}, {d}, {d}, {d})", .{ rects.upper.x, rects.upper.y, rects.upper.width, rects.upper.height }) catch "";
+        const upper_rect_content = std.fmt.bufPrint(&buffer, "Upper Rect: ({d}, {d}, {d}, {d})", .{ upper_rect.x, upper_rect.y, upper_rect.width, upper_rect.height }) catch "";
         const upper_rect_content_str = core_utils.sliceToZSlice(self.allocator, upper_rect_content) catch @panic("Failed to allocate memory for upper_rect_content_str");
         defer self.allocator.free(upper_rect_content_str);
         rl.drawTextEx(self.font, upper_rect_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
         // Draw Lower Rect
         draw_pos.y += font_size_f32 * 2;
-        const lower_rect_content = std.fmt.bufPrint(&buffer, "Lower Rect: ({d}, {d}, {d}, {d})", .{ rects.lower.x, rects.lower.y, rects.lower.width, rects.lower.height }) catch "";
+        const lower_rect_content = std.fmt.bufPrint(&buffer, "Lower Rect: ({d}, {d}, {d}, {d})", .{ lower_rect.x, lower_rect.y, lower_rect.width, lower_rect.height }) catch "";
         const lower_rect_content_str = core_utils.sliceToZSlice(self.allocator, lower_rect_content) catch @panic("Failed to allocate memory for lower_rect_content_str");
         defer self.allocator.free(lower_rect_content_str);
         rl.drawTextEx(self.font, lower_rect_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
         // Draw Hitbox Rect
         draw_pos.y += font_size_f32 * 2;
-        const hitbox_rect_content = std.fmt.bufPrint(&buffer, "Hitbox Rect: ({d}, {d}, {d}, {d})", .{ rects.hitbox.x, rects.hitbox.y, rects.hitbox.width, rects.hitbox.height }) catch "";
+        const hitbox_rect_content = std.fmt.bufPrint(&buffer, "Hitbox Rect: ({d}, {d}, {d}, {d})", .{ hitbox_rect.x, hitbox_rect.y, hitbox_rect.width, hitbox_rect.height }) catch "";
         const hitbox_rect_content_str = core_utils.sliceToZSlice(self.allocator, hitbox_rect_content) catch @panic("Failed to allocate memory for hitbox_rect_content_str");
         defer self.allocator.free(hitbox_rect_content_str);
         rl.drawTextEx(self.font, hitbox_rect_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);

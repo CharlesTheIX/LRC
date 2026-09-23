@@ -14,25 +14,14 @@ pub const Player = struct {
     is_moving: bool = false,
     position: Position = .{},
     is_sprinting: bool = false,
+    action_elapsed: f32 = 0.0,
     sprite_data: sprite.Pokemon,
     allocator: *std.mem.Allocator,
     texture: ?rl.Texture2D = null,
     action: sprite.Action = .Walk,
     direction: sprite.Direction = .Down,
 
-    pub fn actionData(self: *const Player) ?sprite.ActionData {
-        return self.sprite_data.actionData(self.action);
-    }
-
-    pub fn rects(self: *const Player) ?sprite.Rects {
-        const data = self.actionData() orelse return null;
-        const core = data.rects.core orelse return null;
-        const upper = data.rects.upper orelse return null;
-        const lower = data.rects.lower orelse return null;
-        const hitbox = data.rects.hitbox orelse return null;
-        return .{ .upper = upper, .lower = lower, .hitbox = hitbox, .core = core };
-    }
-
+    // base methods
     pub fn deinit(self: *Player) void {
         if (self.texture) |texture| {
             rl.unloadTexture(texture);
@@ -76,45 +65,9 @@ pub const Player = struct {
         self.updateMovement(game);
     }
 
-    fn drawCenter(self: *Player) void {
-        const hitbox = self.getHitboxRect();
-        const center = rl.Vector2.init(hitbox.x + hitbox.width / 2, hitbox.y + hitbox.height / 2);
-        rl.drawCircleV(center, 2.0, rl.Color.red);
-    }
-
-    fn drawHitbox(self: *Player) void {
-        const rects_data = self.rects() orelse return;
-        var rect = rects_data.hitbox;
-        const origin = self.getSpriteOrigin();
-        rect.x += origin.x;
-        rect.y += origin.y;
-        rl.drawRectangleRec(rect, rl.Color.red.alpha(0.5));
-    }
-
-    pub fn drawLowerRect(self: *Player) void {
-        if (self.texture) |texture| {
-            const rects_data = self.rects() orelse return;
-            var rect = rects_data.lower;
-            const frame = self.getActiveFrame();
-            const origin = self.getSpriteOrigin();
-            const src = rl.Rectangle{ .x = frame.x + rect.x, .y = frame.y + rect.y, .width = rect.width, .height = rect.height };
-            rect.x += origin.x;
-            rect.y += origin.y;
-            rl.drawTexturePro(texture, src, rect, rl.Vector2.zero(), 0.0, rl.Color.white);
-        }
-    }
-
-    pub fn drawUpperRect(self: *Player) void {
-        if (self.texture) |texture| {
-            const rects_data = self.rects() orelse return;
-            var rect = rects_data.upper;
-            const frame = self.getActiveFrame();
-            const origin = self.getSpriteOrigin();
-            const src = rl.Rectangle{ .x = frame.x + rect.x, .y = frame.y + rect.y, .width = rect.width, .height = rect.height };
-            rect.x += origin.x;
-            rect.y += origin.y;
-            rl.drawTexturePro(texture, src, rect, rl.Vector2.zero(), 0.0, rl.Color.white);
-        }
+    // helper methods
+    pub fn actionData(self: *const Player) ?sprite.ActionData {
+        return self.sprite_data.actionData(self.action);
     }
 
     fn directionOffset(self: *const Player, data: sprite.ActionData) rl.Vector2 {
@@ -131,14 +84,55 @@ pub const Player = struct {
         };
     }
 
+    fn drawCenter(self: *Player) void {
+        const hitbox = self.getHitboxRect();
+        const center = rl.Vector2.init(hitbox.x + hitbox.width / 2, hitbox.y + hitbox.height / 2);
+        rl.drawCircleV(center, 2.0, rl.Color.red);
+    }
+
+    fn drawHitbox(self: *Player) void {
+        const rects_data = self.rects() orelse return;
+        var rect = rects_data.hitbox orelse return;
+        const origin = self.getSpriteOrigin();
+        rect.x += origin.x;
+        rect.y += origin.y;
+        rl.drawRectangleRec(rect, rl.Color.red.alpha(0.5));
+    }
+
+    pub fn drawLowerRect(self: *Player) void {
+        if (self.texture) |texture| {
+            const rects_data = self.rects() orelse return;
+            var rect = rects_data.lower orelse return;
+            const frame = self.getActiveFrame();
+            const origin = self.getSpriteOrigin();
+            const src = rl.Rectangle{ .x = frame.x + rect.x, .y = frame.y + rect.y, .width = rect.width, .height = rect.height };
+            rect.x += origin.x;
+            rect.y += origin.y;
+            rl.drawTexturePro(texture, src, rect, rl.Vector2.zero(), 0.0, rl.Color.white);
+        }
+    }
+
+    pub fn drawUpperRect(self: *Player) void {
+        if (self.texture) |texture| {
+            const rects_data = self.rects() orelse return;
+            var rect = rects_data.upper orelse return;
+            const frame = self.getActiveFrame();
+            const origin = self.getSpriteOrigin();
+            const src = rl.Rectangle{ .x = frame.x + rect.x, .y = frame.y + rect.y, .width = rect.width, .height = rect.height };
+            rect.x += origin.x;
+            rect.y += origin.y;
+            rl.drawTexturePro(texture, src, rect, rl.Vector2.zero(), 0.0, rl.Color.white);
+        }
+    }
+
     fn getActiveFrame(self: *Player) rl.Rectangle {
         const data = self.actionData() orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
         const rects_data = self.rects() orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
-        var core = rects_data.core;
+        var core = rects_data.core orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
 
         const frame_count = data.frame_count orelse 1;
         const frame_duration = data.frame_duration orelse 0.12;
-        const frame_index: u8 = if (self.is_moving)
+        const frame_index: u8 = if (self.is_moving or self.action == .Sleep)
             @as(u8, @intFromFloat(@mod(rl.getTime() / frame_duration, @as(f32, @floatFromInt(frame_count)))))
         else
             0;
@@ -157,17 +151,19 @@ pub const Player = struct {
 
     fn getHitboxRectAt(self: *Player, position: rl.Vector2) rl.Rectangle {
         const rects_data = self.rects() orelse return .{ .x = position.x, .y = position.y, .width = 0, .height = 0 };
+        const hitbox = rects_data.hitbox orelse return .{ .x = position.x, .y = position.y, .width = 0, .height = 0 };
         return rl.Rectangle{
-            .x = position.x - rects_data.hitbox.width / 2,
-            .y = position.y - rects_data.hitbox.height / 2,
-            .width = rects_data.hitbox.width,
-            .height = rects_data.hitbox.height,
+            .x = position.x - hitbox.width / 2,
+            .y = position.y - hitbox.height / 2,
+            .width = hitbox.width,
+            .height = hitbox.height,
         };
     }
 
     fn getSpriteOrigin(self: *Player) rl.Vector2 {
         const rects_data = self.rects() orelse return self.position.current;
-        const hitbox_center_offset = rl.Vector2.init(rects_data.hitbox.x + rects_data.hitbox.width / 2, rects_data.hitbox.y + rects_data.hitbox.height / 2);
+        const hitbox = rects_data.hitbox orelse return self.position.current;
+        const hitbox_center_offset = rl.Vector2.init(hitbox.x + hitbox.width / 2, hitbox.y + hitbox.height / 2);
         return rl.Vector2.init(self.position.current.x - hitbox_center_offset.x, self.position.current.y - hitbox_center_offset.y);
     }
 
@@ -183,6 +179,24 @@ pub const Player = struct {
         }
     }
 
+    pub fn rects(self: *const Player) ?sprite.ActionRects {
+        const data = self.actionData() orelse return null;
+        return data.rects;
+    }
+
+    fn setAction(self: *Player, action: sprite.Action) void {
+        if (self.action == action) return;
+        if (action == .Sleep) {
+            self.direction = switch (self.direction) {
+                .Left, .UpLeft, .DownLeft => .Left,
+                .Right, .UpRight, .DownRight => .Right,
+                .Up, .Down => if (rl.getRandomValue(0, 1) == 0) .Left else .Right,
+            };
+        }
+        self.action = action;
+        self.action_elapsed = 0.0;
+    }
+
     fn updateMovement(self: *Player, game: *Game) void {
         var move = rl.Vector2.zero();
         const keyboard = game.input_handler.keyboard;
@@ -193,7 +207,24 @@ pub const Player = struct {
         const delta_time = rl.getFrameTime();
         self.is_moving = move.x != 0 or move.y != 0;
         self.is_sprinting = self.is_moving and keyboard.activeKeysInclude(&[_]Key{ .LeftShift, .RightShift }, .Or);
-        self.action = if (self.is_sprinting) .Run else .Walk;
+        if (self.is_moving) {
+            self.setAction(if (self.is_sprinting) .Run else .Walk);
+            self.action_elapsed = 0.0;
+        } else {
+            if (self.action == .Run) self.setAction(.Walk);
+            self.action_elapsed += delta_time;
+            if (self.actionData()) |action_data| {
+                if (action_data.timeout) |timeout| {
+                    if (self.action_elapsed >= timeout) {
+                        switch (self.action) {
+                            .Walk => self.setAction(.Sleep),
+                            // .Idle => self.setAction(.Sleep),
+                            else => {},
+                        }
+                    }
+                }
+            }
+        }
         if (self.is_moving) {
             const normalized = move.normalize();
             self.direction = sprite.Direction.fromVector(normalized);
