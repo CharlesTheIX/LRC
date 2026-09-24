@@ -374,7 +374,7 @@ pub fn drawPlayerDetails(self: *DevScreen, game: *Game) void {
         buffer = undefined;
         // Draw Player Sprite
         draw_pos.y += font_size_f32 * 2;
-        const sprite_content = std.fmt.bufPrint(&buffer, "Sprite: {s}", .{@tagName(player.sprite_data)}) catch "";
+        const sprite_content = std.fmt.bufPrint(&buffer, "Sprite: {s}", .{@tagName(player.sprite_data.name)}) catch "";
         const sprite_content_str = core_utils.sliceToZSlice(self.allocator, sprite_content) catch @panic("Failed to allocate memory for sprite_content_str");
         defer self.allocator.free(sprite_content_str);
         rl.drawTextEx(self.font, sprite_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
@@ -432,12 +432,12 @@ pub fn drawPlayerDetails(self: *DevScreen, game: *Game) void {
         buffer = undefined;
         // Draw Texture State
         draw_pos.y += font_size_f32;
-        const texture_content = std.fmt.bufPrint(&buffer, "Texture Loaded: {s}", .{if (player.texture != null) "Yes" else "No"}) catch "";
+        const texture_content = std.fmt.bufPrint(&buffer, "Texture Loaded: {s}", .{if (player.sprite_data.texture != null) "Yes" else "No"}) catch "";
         const texture_content_str = core_utils.sliceToZSlice(self.allocator, texture_content) catch @panic("Failed to allocate memory for texture_content_str");
         defer self.allocator.free(texture_content_str);
         rl.drawTextEx(self.font, texture_content_str, draw_pos, font_size_f32, core_utils.getCharSpacing(self.font_size), rl.Color.white);
         buffer = undefined;
-        const action_data = player.actionData() orelse return;
+        const action_data = player.actionData();
         // Draw Action Speed
         draw_pos.y += font_size_f32 * 2;
         const speed_content = std.fmt.bufPrint(&buffer, "Action Speed: {d:.2}", .{action_data.speed orelse 0.0}) catch "";
@@ -475,7 +475,7 @@ pub fn drawPlayerDetails(self: *DevScreen, game: *Game) void {
         buffer = undefined;
         // Draw Core Rect
         draw_pos.y += font_size_f32 * 2;
-        const rects = player.rects() orelse return;
+        const rects = player.rects();
         const core_rect = rects.core orelse return;
         const upper_rect = rects.upper orelse return;
         const lower_rect = rects.lower orelse return;

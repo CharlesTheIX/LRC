@@ -5,6 +5,12 @@ const readAsset = @import("../../utils.zig").readAsset;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
 const Props = struct { name: []const u8, allocator: *std.mem.Allocator, io: *std.Io };
+
+pub const Action = utils.Action;
+pub const ActionData = utils.ActionData;
+pub const ActionRects = utils.ActionRects;
+pub const Direction = utils.Direction;
+
 pub const Sprite = struct {
     name: utils.SpriteName,
     allocator: *std.mem.Allocator,
@@ -26,6 +32,15 @@ pub const Sprite = struct {
         var sprite = Sprite{ .name = utils.SpriteName.fromSlice(props.name), .allocator = props.allocator };
         sprite.load(props.io);
         return sprite;
+    }
+
+    pub fn actionData(self: *const Sprite, action: Action) ActionData {
+        return switch (action) {
+            .Idle => self.idle_data,
+            .Rest => self.rest_data,
+            .Run => self.run_data,
+            .Walk => self.walk_data,
+        };
     }
 
     fn load(self: *Sprite, io: *std.Io) void {

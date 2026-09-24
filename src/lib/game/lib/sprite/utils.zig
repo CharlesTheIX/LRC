@@ -65,7 +65,7 @@ pub const Direction = enum {
     }
 };
 
-const SpriteName = enum {
+pub const SpriteName = enum {
     Snorelax,
     Invalid,
 
@@ -99,7 +99,8 @@ fn isDataKey(buf: []u8, key: []const u8, prefix: []const u8, suffix: []const u8)
     return std.mem.eql(u8, key, expected);
 }
 
-fn extractActionData(data: *ActionData, prefix: []const u8, key: []const u8, value: []const u8) void {
+pub fn extractActionData(data: *ActionData, prefix: []const u8, key: []const u8, value: []const u8) void {
+    if (std.mem.eql(u8, value, "null")) return; // Unset placeholder value, nothing to parse
     var field_buf: [32]u8 = undefined;
 
     if (isDataKey(&field_buf, key, prefix, "speed")) data.speed = std.fmt.parseFloat(f32, value) catch null;

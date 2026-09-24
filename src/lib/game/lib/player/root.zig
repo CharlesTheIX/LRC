@@ -51,7 +51,7 @@ pub const Player = struct {
     }
 
     // helper methods
-    pub fn actionData(self: *const Player) ?sprite.ActionData {
+    pub fn actionData(self: *const Player) sprite.ActionData {
         return self.sprite_data.actionData(self.action);
     }
 
@@ -76,7 +76,7 @@ pub const Player = struct {
     }
 
     fn drawHitbox(self: *Player) void {
-        const rects_data = self.rects() orelse return;
+        const rects_data = self.rects();
         var rect = rects_data.hitbox orelse return;
         const origin = self.getSpriteOrigin();
         rect.x += origin.x;
@@ -85,8 +85,8 @@ pub const Player = struct {
     }
 
     pub fn drawLowerRect(self: *Player) void {
-        if (self.texture) |texture| {
-            const rects_data = self.rects() orelse return;
+        if (self.sprite_data.texture) |texture| {
+            const rects_data = self.rects();
             var rect = rects_data.lower orelse return;
             const frame = self.getActiveFrame();
             const origin = self.getSpriteOrigin();
@@ -98,8 +98,8 @@ pub const Player = struct {
     }
 
     pub fn drawUpperRect(self: *Player) void {
-        if (self.texture) |texture| {
-            const rects_data = self.rects() orelse return;
+        if (self.sprite_data.texture) |texture| {
+            const rects_data = self.rects();
             var rect = rects_data.upper orelse return;
             const frame = self.getActiveFrame();
             const origin = self.getSpriteOrigin();
@@ -111,13 +111,13 @@ pub const Player = struct {
     }
 
     fn getActiveFrame(self: *Player) rl.Rectangle {
-        const data = self.actionData() orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
-        const rects_data = self.rects() orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
+        const data = self.actionData();
+        const rects_data = self.rects();
         var core = rects_data.core orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
 
         const frame_count = data.frame_count orelse 1;
         const frame_duration = data.frame_duration orelse 0.12;
-        const frame_index: u8 = if (self.is_moving or self.action == .Sleep)
+        const frame_index: u8 = if (self.is_moving or self.action == .Rest)
             @as(u8, @intFromFloat(@mod(rl.getTime() / frame_duration, @as(f32, @floatFromInt(frame_count)))))
         else
             0;
@@ -135,7 +135,7 @@ pub const Player = struct {
     }
 
     fn getHitboxRectAt(self: *Player, position: rl.Vector2) rl.Rectangle {
-        const rects_data = self.rects() orelse return .{ .x = position.x, .y = position.y, .width = 0, .height = 0 };
+        const rects_data = self.rects();
         const hitbox = rects_data.hitbox orelse return .{ .x = position.x, .y = position.y, .width = 0, .height = 0 };
         return rl.Rectangle{
             .x = position.x - hitbox.width / 2,
@@ -146,7 +146,7 @@ pub const Player = struct {
     }
 
     fn getSpriteOrigin(self: *Player) rl.Vector2 {
-        const rects_data = self.rects() orelse return self.position.current;
+        const rects_data = self.rects();
         const hitbox = rects_data.hitbox orelse return self.position.current;
         const hitbox_center_offset = rl.Vector2.init(hitbox.x + hitbox.width / 2, hitbox.y + hitbox.height / 2);
         return rl.Vector2.init(self.position.current.x - hitbox_center_offset.x, self.position.current.y - hitbox_center_offset.y);
@@ -164,14 +164,13 @@ pub const Player = struct {
         }
     }
 
-    pub fn rects(self: *const Player) ?sprite.ActionRects {
-        const data = self.actionData() orelse return null;
-        return data.rects;
+    pub fn rects(self: *const Player) sprite.ActionRects {
+        return self.actionData().rects;
     }
 
     fn setAction(self: *Player, action: sprite.Action) void {
         if (self.action == action) return;
-        if (action == .Sleep) {
+        if (action == .Rest) {
             self.direction = switch (self.direction) {
                 .Left, .UpLeft, .DownLeft => .Left,
                 .Right, .UpRight, .DownRight => .Right,
@@ -198,14 +197,12 @@ pub const Player = struct {
         } else {
             if (self.action == .Run) self.setAction(.Walk);
             self.action_elapsed += delta_time;
-            if (self.actionData()) |action_data| {
-                if (action_data.timeout) |timeout| {
-                    if (self.action_elapsed >= timeout) {
-                        switch (self.action) {
-                            .Walk => self.setAction(.Sleep),
-                            // .Idle => self.setAction(.Sleep),
-                            else => {},
-                        }
+            const action_data = self.actionData();
+            if (action_data.timeout) |timeout| {
+                if (self.action_elapsed >= timeout) {
+                    switch (self.action) {
+                        .Walk => self.setAction(.Rest),
+                        else => {},
                     }
                 }
             }
@@ -213,7 +210,7 @@ pub const Player = struct {
         if (self.is_moving) {
             const normalized = move.normalize();
             self.direction = sprite.Direction.fromVector(normalized);
-            const action_data = self.actionData() orelse return;
+            const action_data = self.actionData();
             const move_speed = action_data.speed orelse 0.0;
             self.position.target.x += normalized.x * move_speed * delta_time;
             self.position.target.y += normalized.y * move_speed * delta_time;
