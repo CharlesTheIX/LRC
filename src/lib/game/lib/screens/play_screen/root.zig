@@ -6,7 +6,7 @@ const Game = @import("../../../root.zig").Game;
 const Player = @import("../../player/root.zig").Player;
 const Key = @import("../../input_handler/root.zig").Key;
 
-const Props = struct { font: rl.Font, font_size: u32 = 32, allocator: *std.mem.Allocator };
+const Props = struct { font: rl.Font, font_size: u32 = 32, allocator: *std.mem.Allocator, io: *std.Io };
 
 pub const PlayScreen = struct {
     map: Map,
@@ -34,7 +34,7 @@ pub const PlayScreen = struct {
             .font_size = props.font_size,
             .allocator = props.allocator,
             .map = Map.init(.{ .allocator = props.allocator }),
-            .player = Player.init(.{ .allocator = props.allocator, .sprite_name = "pikachu" }),
+            .player = Player.init(.{ .allocator = props.allocator, .sprite_name = "pikachu", .io = props.io }),
         };
     }
 

@@ -147,6 +147,18 @@ pub fn nowEpochYearSeconds() i64 {
     }
 }
 
+// Unlike readFile ($HOME-relative), asset paths are relative to raylib's working directory.
+pub fn readAsset(io: *Io, allocator: *Allocator, asset_path: []const u8) ![]u8 {
+    const working_dir = std.Io.Dir.cwd().openDir(io.*, rl.getWorkingDirectory(), .{}) catch return error.WorkingDirectoryNotFound;
+    const file = working_dir.openFile(io.*, asset_path, .{}) catch return error.FileOpenFailed;
+    defer file.close(io.*);
+    const size = file.length(io.*) catch return error.FileReadFailed;
+    const buffer = allocator.*.alloc(u8, size) catch return error.OutOfMemory;
+    errdefer allocator.*.free(buffer);
+    const read_bytes = file.readPositionalAll(io.*, buffer, 0) catch return error.FileReadFailed;
+    return buffer[0..read_bytes];
+}
+
 pub fn readFile(io: *Io, env_map: *Map, allocator: *Allocator, file_path: []const u8) ![]u8 {
     const home_dir = getHomeDirectory(io, env_map) catch |err| return err;
     const file = home_dir.openFile(io.*, file_path, .{}) catch return error.FileOpenFailed;

@@ -164,7 +164,7 @@ pub const Game = struct {
         self.game_state = state;
         switch (state) {
             .Playing => {
-                self.play_screen = PlayScreen.init(.{ .font = self.font, .font_size = self.font_size, .allocator = self.allocator });
+                self.play_screen = PlayScreen.init(.{ .font = self.font, .font_size = self.font_size, .allocator = self.allocator, .io = self.io });
                 if (self.play_screen) |*play_screen| play_screen.load(self);
                 self.game_timer.start();
             },

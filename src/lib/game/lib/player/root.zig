@@ -8,25 +8,21 @@ const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
 const Position = struct { current: rl.Vector2 = rl.Vector2.zero(), target: rl.Vector2 = rl.Vector2.zero() };
 
-const Props = struct { allocator: *std.mem.Allocator, sprite_name: []const u8 };
+const Props = struct { allocator: *std.mem.Allocator, sprite_name: []const u8, io: *std.Io };
 pub const Player = struct {
     name: []const u8 = "",
     is_moving: bool = false,
     position: Position = .{},
-    is_sprinting: bool = false,
     action_elapsed: f32 = 0.0,
-    sprite_data: sprite.Pokemon,
+    is_sprinting: bool = false,
+    sprite_data: sprite.Sprite,
     allocator: *std.mem.Allocator,
-    texture: ?rl.Texture2D = null,
     action: sprite.Action = .Walk,
     direction: sprite.Direction = .Down,
 
     // base methods
     pub fn deinit(self: *Player) void {
-        if (self.texture) |texture| {
-            rl.unloadTexture(texture);
-            self.texture = null;
-        }
+        self.sprite_data.deinit();
     }
 
     pub fn draw(self: *Player) void {
@@ -37,20 +33,9 @@ pub const Player = struct {
     }
 
     pub fn init(props: Props) Player {
-        const pokemon = sprite.Pokemon.fromString(props.sprite_name);
-        const texture_path = switch (pokemon) {
-            .Pikachu => |config| config.texture_path,
-            .Scyther => |config| config.texture_path,
-            .Snorelax => |config| config.texture_path,
-        };
-        const texture_path_z = sliceToZSlice(props.allocator, texture_path) catch @panic("Failed to convert texture path to Z slice");
-        defer props.allocator.free(texture_path_z);
-        const texture = rl.loadTexture(texture_path_z) catch @panic("Failed to load player texture");
-
         return Player{
-            .sprite_data = pokemon,
             .allocator = props.allocator,
-            .texture = texture,
+            .sprite_data = sprite.Sprite.init(.{ .allocator = props.allocator, .name = "snorelax", .io = props.io }),
         };
     }
 
