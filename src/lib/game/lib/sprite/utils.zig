@@ -66,11 +66,18 @@ pub const Direction = enum {
 };
 
 pub const SpriteName = enum {
+    Pikachu,
+    Scyther,
+    Smeargle,
     Snorelax,
+    Squirtle,
     Invalid,
 
     pub fn fromSlice(slice: []const u8) SpriteName {
-        if (std.mem.eql(u8, slice, "Snorelax") or std.mem.eql(u8, slice, "snorelax")) return .Snorelax;
+        inline for (@typeInfo(SpriteName).@"enum".fields) |field| {
+            const name: SpriteName = @enumFromInt(field.value);
+            if (name != .Invalid and std.ascii.eqlIgnoreCase(slice, field.name)) return name;
+        }
         return .Invalid;
     }
 
@@ -88,7 +95,11 @@ pub const SpriteName = enum {
 
     pub fn toSlice(self: SpriteName) []const u8 {
         return switch (self) {
+            .Pikachu => "pikachu",
+            .Scyther => "scyther",
+            .Smeargle => "smeargle",
             .Snorelax => "snorelax",
+            .Squirtle => "squirtle",
             .Invalid => "Invalid",
         };
     }
