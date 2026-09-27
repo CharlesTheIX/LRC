@@ -10,10 +10,10 @@ const Props = struct { name: []const u8, allocator: *std.mem.Allocator, io: *std
 pub const Sprite = struct {
     name: utils.SpriteName,
     is_moving: bool = false,
-    action_elapsed: f32 = 0.0,
     frame_elapsed: f32 = 0.0,
+    action_elapsed: f32 = 0.0,
     is_sprinting: bool = false,
-    cycle_count: ?[2]u32 = null,
+    current_cycle: ?u32 = null,
     action: utils.Action = .Walk,
     sprite_type: utils.SpriteType,
     texture: ?rl.Texture2D = null,
@@ -71,9 +71,8 @@ pub const Sprite = struct {
     }
 
     fn drawHitbox(self: *Sprite) void {
-        const rects_data = self.getActionData(self.action).rects;
-        var rect = rects_data.hitbox orelse return;
         const origin = self.getOrigin();
+        var rect = self.getActionData(self.action).rects.hitbox orelse return;
         rect.x += origin.x;
         rect.y += origin.y;
         rl.drawRectangleRec(rect, rl.Color.red.alpha(0.5));
@@ -81,10 +80,9 @@ pub const Sprite = struct {
 
     fn drawLowerRect(self: *Sprite) void {
         if (self.texture) |texture| {
-            const rects_data = self.getActionData(self.action).rects;
-            var rect = rects_data.lower orelse return;
-            const frame = self.getActiveFrame();
             const origin = self.getOrigin();
+            const frame = self.getActiveFrame();
+            var rect = self.getActionData(self.action).rects.lower orelse return;
             const src = rl.Rectangle{ .x = frame.x + rect.x, .y = frame.y + rect.y, .width = rect.width, .height = rect.height };
             rect.x += origin.x;
             rect.y += origin.y;
@@ -94,10 +92,9 @@ pub const Sprite = struct {
 
     pub fn drawUpperRect(self: *Sprite) void {
         if (self.texture) |texture| {
-            const rects_data = self.getActionData(self.action).rects;
-            var rect = rects_data.upper orelse return;
-            const frame = self.getActiveFrame();
             const origin = self.getOrigin();
+            const frame = self.getActiveFrame();
+            var rect = self.getActionData(self.action).rects.upper orelse return;
             const src = rl.Rectangle{ .x = frame.x + rect.x, .y = frame.y + rect.y, .width = rect.width, .height = rect.height };
             rect.x += origin.x;
             rect.y += origin.y;
@@ -131,16 +128,15 @@ pub const Sprite = struct {
     }
 
     fn getActiveFrame(self: *Sprite) rl.Rectangle {
+        var frame_index: u8 = 0;
         const data = self.getActionData(self.action);
-        const rects_data = data.rects;
-        var core = rects_data.core orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
+        const direction_offset = self.getDirectionOffset();
+        const should_update_frame = self.is_moving or self.action == .Rest or self.action == .Idle;
         const frame_count = data.frame_count orelse 1;
         const frame_duration = data.frame_duration orelse 0.12;
-        var frame_index: u8 = 0;
-        const should_update_frame = self.is_moving or self.action == .Rest or self.action == .Idle;
-        if (should_update_frame) frame_index = @intFromFloat(@mod(self.frame_elapsed / frame_duration, @as(f32, @floatFromInt(frame_count))));
         const spritesheet_offset = data.spritesheet_offset orelse rl.Vector2.zero();
-        const direction_offset = self.getDirectionOffset();
+        var core = data.rects.core orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
+        if (should_update_frame) frame_index = @intFromFloat(@mod(self.frame_elapsed / frame_duration, @as(f32, @floatFromInt(frame_count))));
         core.x = spritesheet_offset.x + direction_offset.x + core.width * @as(f32, @floatFromInt(frame_index));
         core.y = spritesheet_offset.y + direction_offset.y;
         return core;
@@ -163,20 +159,13 @@ pub const Sprite = struct {
 
     pub fn getHitboxRect(self: *Sprite, position: ?rl.Vector2) rl.Rectangle {
         const _position = position orelse self.position.current;
-        const rects_data = self.getActionData(self.action).rects;
-        const hitbox = rects_data.hitbox orelse return .{ .x = _position.x, .y = _position.y, .width = 0, .height = 0 };
-        return rl.Rectangle{
-            .x = _position.x - hitbox.width / 2,
-            .y = _position.y - hitbox.height / 2,
-            .width = hitbox.width,
-            .height = hitbox.height,
-        };
+        const hitbox = self.getActionData(self.action).rects.hitbox orelse return .{ .x = _position.x, .y = _position.y, .width = 0, .height = 0 };
+        return rl.Rectangle{ .x = _position.x - hitbox.width / 2, .y = _position.y - hitbox.height / 2, .width = hitbox.width, .height = hitbox.height };
     }
 
     fn getOrigin(self: *Sprite) rl.Vector2 {
-        const rects_data = self.getActionData(self.action).rects;
         const position = self.position.current;
-        const hitbox = rects_data.hitbox orelse return position;
+        const hitbox = self.getActionData(self.action).rects.hitbox orelse return position;
         const hitbox_center_offset = rl.Vector2.init(hitbox.x + hitbox.width / 2, hitbox.y + hitbox.height / 2);
         return rl.Vector2.init(position.x - hitbox_center_offset.x, position.y - hitbox_center_offset.y);
     }
@@ -202,24 +191,32 @@ pub const Sprite = struct {
                 .Up, .Down => if (rl.getRandomValue(0, 1) == 0) .Left else .Right,
             };
         }
-        self.action_elapsed = 0.0;
-        self.frame_elapsed = 0.0;
         self.action = action;
+        self.frame_elapsed = 0.0;
+        self.action_elapsed = 0.0;
     }
 
     fn updatePlayer(self: *Sprite, game: *Game) void {
         var move = rl.Vector2.zero();
+        const delta_time = rl.getFrameTime();
         const keyboard = game.input_handler.keyboard;
         if (keyboard.activeKeysInclude(&[_]Key{ .Up, .W }, .Or)) move.y -= 1;
         if (keyboard.activeKeysInclude(&[_]Key{ .Down, .S }, .Or)) move.y += 1;
         if (keyboard.activeKeysInclude(&[_]Key{ .Left, .A }, .Or)) move.x -= 1;
         if (keyboard.activeKeysInclude(&[_]Key{ .Right, .D }, .Or)) move.x += 1;
-        const delta_time = rl.getFrameTime();
         self.is_moving = move.x != 0 or move.y != 0;
         self.is_sprinting = self.is_moving and keyboard.activeKeysInclude(&[_]Key{ .LeftShift, .RightShift }, .Or);
         if (self.is_moving) {
-            self.setAction(if (self.is_sprinting) .Run else .Walk);
             self.action_elapsed = 0.0;
+            self.setAction(if (self.is_sprinting) .Run else .Walk);
+            const normalized = move.normalize();
+            self.direction = utils.Direction.fromVector(normalized);
+            const action_data = self.getActionData(null);
+            const move_speed = action_data.speed orelse 0.0;
+            self.position.target.x += normalized.x * move_speed * delta_time;
+            self.position.target.y += normalized.y * move_speed * delta_time;
+            self.handleMapEdgeCollision(game);
+            self.position.current = self.position.target;
         } else {
             if (self.action == .Run) self.setAction(.Walk);
             if (self.action == .Walk) self.frame_elapsed = 0.0; // hold the standing frame so the next step starts the cycle over
@@ -234,16 +231,6 @@ pub const Sprite = struct {
                     }
                 }
             }
-        }
-        if (self.is_moving) {
-            const normalized = move.normalize();
-            self.direction = utils.Direction.fromVector(normalized);
-            const action_data = self.getActionData(null);
-            const move_speed = action_data.speed orelse 0.0;
-            self.position.target.x += normalized.x * move_speed * delta_time;
-            self.position.target.y += normalized.y * move_speed * delta_time;
-            self.handleMapEdgeCollision(game);
-            self.position.current = self.position.target;
         }
     }
 };

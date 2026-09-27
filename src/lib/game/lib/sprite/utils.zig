@@ -1,7 +1,23 @@
 const std = @import("std");
 const rl = @import("raylib");
 
+// enums and structs
 pub const Action = enum { Idle, Rest, Run, Walk };
+
+pub const ActionData = struct {
+    speed: ?f32 = null,
+    timeout: ?f32 = null,
+    frame_count: ?u8 = null,
+    rects: ActionRects = .{},
+    frame_duration: ?f32 = null,
+    cycle_counts: ?[2]u32 = null,
+    spritesheet_offset: ?rl.Vector2 = null,
+    directions: ActionDirectionOffsets = .{},
+
+    pub fn init() ActionData {
+        return ActionData{};
+    }
+};
 
 pub const ActionDirectionOffsets = struct {
     up: ?rl.Vector2 = null,
@@ -15,21 +31,6 @@ pub const ActionDirectionOffsets = struct {
 };
 
 pub const ActionRects = struct { core: ?rl.Rectangle = null, upper: ?rl.Rectangle = null, lower: ?rl.Rectangle = null, hitbox: ?rl.Rectangle = null };
-
-pub const ActionData = struct {
-    speed: ?f32 = null,
-    timeout: ?f32 = null,
-    frame_count: ?u8 = null,
-    rects: ActionRects = .{},
-    frame_duration: ?f32 = null,
-    cycle_count: ?[2]u32 = null,
-    spritesheet_offset: ?rl.Vector2 = null,
-    directions: ActionDirectionOffsets = .{},
-
-    pub fn init() ActionData {
-        return ActionData{};
-    }
-};
 
 pub const Direction = enum {
     Down,
@@ -109,17 +110,18 @@ pub const SpriteName = enum {
 };
 
 pub const SpriteType = enum {
-    Player,
     NPC,
+    Player,
     Invalid,
 
     pub fn fromSlice(slice: []const u8) SpriteType {
-        if (std.mem.eql(u8, slice, "player")) return .Player;
         if (std.mem.eql(u8, slice, "npc")) return .NPC;
+        if (std.mem.eql(u8, slice, "player")) return .Player;
         return .Invalid;
     }
 };
 
+// functions
 fn isDataKey(buf: []u8, key: []const u8, prefix: []const u8, suffix: []const u8) bool {
     const expected = std.fmt.bufPrint(buf, "{s}_{s}", .{ prefix, suffix }) catch return false;
     return std.mem.eql(u8, key, expected);
@@ -128,26 +130,22 @@ fn isDataKey(buf: []u8, key: []const u8, prefix: []const u8, suffix: []const u8)
 pub fn extractActionData(data: *ActionData, prefix: []const u8, key: []const u8, value: []const u8) void {
     if (std.mem.eql(u8, value, "null")) return; // Unset placeholder value, nothing to parse
     var field_buf: [32]u8 = undefined;
-
     if (isDataKey(&field_buf, key, prefix, "speed")) data.speed = std.fmt.parseFloat(f32, value) catch null;
     if (isDataKey(&field_buf, key, prefix, "timeout")) data.timeout = std.fmt.parseFloat(f32, value) catch null;
     if (isDataKey(&field_buf, key, prefix, "frame_duration")) data.frame_duration = std.fmt.parseFloat(f32, value) catch null;
     if (isDataKey(&field_buf, key, prefix, "frame_count")) data.frame_count = std.fmt.parseInt(u8, value, 10) catch null;
-
-    if (isDataKey(&field_buf, key, prefix, "cycle_count")) {
+    if (isDataKey(&field_buf, key, prefix, "cycle_counts")) {
         var values = std.mem.splitSequence(u8, value, ",");
         const first = std.fmt.parseInt(u32, values.first(), 10) catch return;
         const second = std.fmt.parseInt(u32, values.rest(), 10) catch return;
-        data.cycle_count = .{ first, second };
+        data.cycle_counts = .{ first, second };
     }
-
     if (isDataKey(&field_buf, key, prefix, "spritesheet_offset")) {
         var values = std.mem.splitSequence(u8, value, ",");
         const x = std.fmt.parseFloat(f32, values.first()) catch 0;
         const y = std.fmt.parseFloat(f32, values.rest()) catch 0;
         data.spritesheet_offset = rl.Vector2.init(x, y);
     }
-
     if (isDataKey(&field_buf, key, prefix, "direction_offsets")) {
         var directions_it = std.mem.splitSequence(u8, value, ";");
         while (directions_it.next()) |direction| {
@@ -167,7 +165,6 @@ pub fn extractActionData(data: *ActionData, prefix: []const u8, key: []const u8,
             if (std.mem.eql(u8, dir_key, "down_right")) data.directions.down_right = offset;
         }
     }
-
     if (isDataKey(&field_buf, key, prefix, "rects")) {
         var rects_it = std.mem.splitSequence(u8, value, ";");
         while (rects_it.next()) |rect| {
