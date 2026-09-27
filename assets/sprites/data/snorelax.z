@@ -1,6 +1,7 @@
 idle_speed:null
-idle_timeout:5.0
+idle_timeout:10.0
 idle_frame_count:6
+idle_cycle_count:2,5
 idle_frame_duration:0.12
 idle_spritesheet_offset:0,0
 idle_rects:core=0,0,38,40;upper=0,0,38,22;lower=0,22,38,18;hitbox=8,22,22,16
@@ -9,6 +10,7 @@ idle_direction_offsets:down=0,0;down_right=0,40;right=0,80;up_right=0,120;up=0,1
 rest_speed:null
 rest_timeout:10.0
 rest_frame_count:2
+rest_cycle_count:null
 rest_frame_duration:0.50
 rest_spritesheet_offset:0,640
 rest_rects:core=0,0,38,40;upper=0,0,38,22;lower=0,22,38,18;hitbox=8,22,22,16
@@ -17,6 +19,7 @@ rest_direction_offsets:left=0,0
 run_speed:200.0
 run_timeout:null
 run_frame_count:4
+run_cycle_count:null
 run_frame_duration:0.12
 run_spritesheet_offset:0,320
 run_rects:core=0,0,38,40;upper=0,0,38,22;lower=0,22,38,18;hitbox=8,22,22,16
@@ -25,6 +28,7 @@ run_direction_offsets:down=0,0;down_right=0,40;right=0,80;up_right=0,120;up=0,16
 walk_speed:100.0
 walk_timeout:5.0
 walk_frame_count:4
+walk_cycle_count:null
 walk_frame_duration:0.12
 walk_spritesheet_offset:0,320
 walk_rects:core=0,0,38,40;upper=0,0,38,22;lower=0,22,38,18;hitbox=8,22,22,16

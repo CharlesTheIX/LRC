@@ -1,26 +1,25 @@
 const std = @import("std");
 const rl = @import("raylib");
 const utils = @import("./utils.zig");
+const Game = @import("../../root.zig").Game;
+const Key = @import("../input_handler/root.zig").Key;
 const readAsset = @import("../../utils.zig").readAsset;
 const sliceToZSlice = @import("../../utils.zig").sliceToZSlice;
 
-pub const Action = utils.Action;
-pub const Direction = utils.Direction;
-pub const ActionData = utils.ActionData;
-pub const ActionRects = utils.ActionRects;
-
-const Position = struct { current: rl.Vector2 = rl.Vector2.zero(), target: rl.Vector2 = rl.Vector2.zero() };
-const Props = struct { name: []const u8, allocator: *std.mem.Allocator, io: *std.Io };
+const Props = struct { name: []const u8, allocator: *std.mem.Allocator, io: *std.Io, sprite_type: utils.SpriteType };
 pub const Sprite = struct {
-    action: Action = .Idle,
     name: utils.SpriteName,
     is_moving: bool = false,
-    position: Position = .{},
     action_elapsed: f32 = 0.0,
+    frame_elapsed: f32 = 0.0,
     is_sprinting: bool = false,
-    direction: Direction = .Down,
+    cycle_count: ?[2]u32 = null,
+    action: utils.Action = .Walk,
+    sprite_type: utils.SpriteType,
     texture: ?rl.Texture2D = null,
     allocator: *std.mem.Allocator,
+    position: utils.Position = .{},
+    direction: utils.Direction = .Down,
     run_data: utils.ActionData = .init(),
     idle_data: utils.ActionData = .init(),
     rest_data: utils.ActionData = .init(),
@@ -37,13 +36,13 @@ pub const Sprite = struct {
     pub fn draw(self: *Sprite) void {
         self.drawLowerRect();
         self.drawUpperRect();
-        self.drawHitbox();
-        self.drawCenter();
+        // self.drawHitbox();
+        // self.drawCenter();
     }
 
     pub fn init(props: Props) Sprite {
         var buffer: [128]u8 = undefined;
-        var sprite = Sprite{ .name = utils.SpriteName.fromSlice(props.name), .allocator = props.allocator };
+        var sprite = Sprite{ .name = utils.SpriteName.fromSlice(props.name), .allocator = props.allocator, .sprite_type = props.sprite_type };
         const texture_path = sprite.name.getTexturePath(&buffer);
         if (texture_path) |path| sprite.texture = rl.loadTexture(path) catch @panic("Failed to load texture");
         buffer = undefined;
@@ -54,6 +53,14 @@ pub const Sprite = struct {
             sprite.extractData(content);
         }
         return sprite;
+    }
+
+    pub fn update(self: *Sprite, game: *Game) void {
+        self.frame_elapsed += rl.getFrameTime();
+        switch (self.sprite_type) {
+            .Player => return self.updatePlayer(game),
+            else => return,
+        }
     }
 
     // helper methods
@@ -113,7 +120,7 @@ pub const Sprite = struct {
         }
     }
 
-    pub fn getActionData(self: *const Sprite, action: ?Action) ActionData {
+    pub fn getActionData(self: *const Sprite, action: ?utils.Action) utils.ActionData {
         const _action = action orelse self.action;
         return switch (_action) {
             .Run => self.run_data,
@@ -130,9 +137,8 @@ pub const Sprite = struct {
         const frame_count = data.frame_count orelse 1;
         const frame_duration = data.frame_duration orelse 0.12;
         var frame_index: u8 = 0;
-        if (self.is_moving or self.action == .Rest) {
-            frame_index = @as(u8, @intFromFloat(@mod(rl.getTime() / frame_duration, @as(f32, @floatFromInt(frame_count)))));
-        }
+        const should_update_frame = self.is_moving or self.action == .Rest or self.action == .Idle;
+        if (should_update_frame) frame_index = @intFromFloat(@mod(self.frame_elapsed / frame_duration, @as(f32, @floatFromInt(frame_count))));
         const spritesheet_offset = data.spritesheet_offset orelse rl.Vector2.zero();
         const direction_offset = self.getDirectionOffset();
         core.x = spritesheet_offset.x + direction_offset.x + core.width * @as(f32, @floatFromInt(frame_index));
@@ -175,7 +181,19 @@ pub const Sprite = struct {
         return rl.Vector2.init(position.x - hitbox_center_offset.x, position.y - hitbox_center_offset.y);
     }
 
-    pub fn setAction(self: *Sprite, action: Action) void {
+    fn handleMapEdgeCollision(self: *Sprite, game: *Game) void {
+        const play_screen = game.play_screen;
+        if (play_screen) |ps| {
+            const map = ps.map;
+            const hitbox_rect = self.getHitboxRect(self.position.target);
+            if (hitbox_rect.x < map.rect.x) self.position.target.x = map.rect.x + hitbox_rect.width / 2;
+            if (hitbox_rect.y < map.rect.y) self.position.target.y = map.rect.y + hitbox_rect.height / 2;
+            if (hitbox_rect.x + hitbox_rect.width > map.rect.x + map.rect.width) self.position.target.x = map.rect.x + map.rect.width - hitbox_rect.width / 2;
+            if (hitbox_rect.y + hitbox_rect.height > map.rect.y + map.rect.height) self.position.target.y = map.rect.y + map.rect.height - hitbox_rect.height / 2;
+        }
+    }
+
+    pub fn setAction(self: *Sprite, action: utils.Action) void {
         if (self.action == action) return;
         if (action == .Rest) {
             self.direction = switch (self.direction) {
@@ -185,6 +203,47 @@ pub const Sprite = struct {
             };
         }
         self.action_elapsed = 0.0;
+        self.frame_elapsed = 0.0;
         self.action = action;
+    }
+
+    fn updatePlayer(self: *Sprite, game: *Game) void {
+        var move = rl.Vector2.zero();
+        const keyboard = game.input_handler.keyboard;
+        if (keyboard.activeKeysInclude(&[_]Key{ .Up, .W }, .Or)) move.y -= 1;
+        if (keyboard.activeKeysInclude(&[_]Key{ .Down, .S }, .Or)) move.y += 1;
+        if (keyboard.activeKeysInclude(&[_]Key{ .Left, .A }, .Or)) move.x -= 1;
+        if (keyboard.activeKeysInclude(&[_]Key{ .Right, .D }, .Or)) move.x += 1;
+        const delta_time = rl.getFrameTime();
+        self.is_moving = move.x != 0 or move.y != 0;
+        self.is_sprinting = self.is_moving and keyboard.activeKeysInclude(&[_]Key{ .LeftShift, .RightShift }, .Or);
+        if (self.is_moving) {
+            self.setAction(if (self.is_sprinting) .Run else .Walk);
+            self.action_elapsed = 0.0;
+        } else {
+            if (self.action == .Run) self.setAction(.Walk);
+            if (self.action == .Walk) self.frame_elapsed = 0.0; // hold the standing frame so the next step starts the cycle over
+            self.action_elapsed += delta_time;
+            const action_data = self.getActionData(null);
+            if (action_data.timeout) |timeout| {
+                if (self.action_elapsed >= timeout) {
+                    switch (self.action) {
+                        .Walk => self.setAction(.Idle),
+                        .Idle => self.setAction(.Rest),
+                        else => {},
+                    }
+                }
+            }
+        }
+        if (self.is_moving) {
+            const normalized = move.normalize();
+            self.direction = utils.Direction.fromVector(normalized);
+            const action_data = self.getActionData(null);
+            const move_speed = action_data.speed orelse 0.0;
+            self.position.target.x += normalized.x * move_speed * delta_time;
+            self.position.target.y += normalized.y * move_speed * delta_time;
+            self.handleMapEdgeCollision(game);
+            self.position.current = self.position.target;
+        }
     }
 };

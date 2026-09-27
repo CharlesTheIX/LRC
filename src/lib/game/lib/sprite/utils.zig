@@ -22,6 +22,7 @@ pub const ActionData = struct {
     frame_count: ?u8 = null,
     rects: ActionRects = .{},
     frame_duration: ?f32 = null,
+    cycle_count: ?[2]u32 = null,
     spritesheet_offset: ?rl.Vector2 = null,
     directions: ActionDirectionOffsets = .{},
 
@@ -65,6 +66,8 @@ pub const Direction = enum {
     }
 };
 
+pub const Position = struct { current: rl.Vector2 = rl.Vector2.zero(), target: rl.Vector2 = rl.Vector2.zero() };
+
 pub const SpriteName = enum {
     Pikachu,
     Scyther,
@@ -105,6 +108,18 @@ pub const SpriteName = enum {
     }
 };
 
+pub const SpriteType = enum {
+    Player,
+    NPC,
+    Invalid,
+
+    pub fn fromSlice(slice: []const u8) SpriteType {
+        if (std.mem.eql(u8, slice, "player")) return .Player;
+        if (std.mem.eql(u8, slice, "npc")) return .NPC;
+        return .Invalid;
+    }
+};
+
 fn isDataKey(buf: []u8, key: []const u8, prefix: []const u8, suffix: []const u8) bool {
     const expected = std.fmt.bufPrint(buf, "{s}_{s}", .{ prefix, suffix }) catch return false;
     return std.mem.eql(u8, key, expected);
@@ -118,6 +133,13 @@ pub fn extractActionData(data: *ActionData, prefix: []const u8, key: []const u8,
     if (isDataKey(&field_buf, key, prefix, "timeout")) data.timeout = std.fmt.parseFloat(f32, value) catch null;
     if (isDataKey(&field_buf, key, prefix, "frame_duration")) data.frame_duration = std.fmt.parseFloat(f32, value) catch null;
     if (isDataKey(&field_buf, key, prefix, "frame_count")) data.frame_count = std.fmt.parseInt(u8, value, 10) catch null;
+
+    if (isDataKey(&field_buf, key, prefix, "cycle_count")) {
+        var values = std.mem.splitSequence(u8, value, ",");
+        const first = std.fmt.parseInt(u32, values.first(), 10) catch return;
+        const second = std.fmt.parseInt(u32, values.rest(), 10) catch return;
+        data.cycle_count = .{ first, second };
+    }
 
     if (isDataKey(&field_buf, key, prefix, "spritesheet_offset")) {
         var values = std.mem.splitSequence(u8, value, ",");
