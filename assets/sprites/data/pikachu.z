@@ -29,5 +29,5 @@ idle_timeout:null
 idle_frame_count:null
 idle_frame_duration:null
 idle_spritesheet_offset:null
-idle_direction_offsets:nul
+idle_direction_offsets:null
 idle_rects:null

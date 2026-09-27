@@ -132,8 +132,8 @@ pub fn extractActionData(data: *ActionData, prefix: []const u8, key: []const u8,
             var key_value = std.mem.splitSequence(u8, direction, "=");
             const dir_key = key_value.first();
             var values = std.mem.splitSequence(u8, key_value.rest(), ",");
-            const x = std.fmt.parseFloat(f32, values.first()) catch @panic("Failed to parse x value for direction offset");
-            const y = std.fmt.parseFloat(f32, values.rest()) catch @panic("Failed to parse y value for direction offset");
+            const x = std.fmt.parseFloat(f32, values.first()) catch continue;
+            const y = std.fmt.parseFloat(f32, values.rest()) catch continue;
             const offset = rl.Vector2.init(x, y);
             if (std.mem.eql(u8, dir_key, "up")) data.directions.up = offset;
             if (std.mem.eql(u8, dir_key, "down")) data.directions.down = offset;

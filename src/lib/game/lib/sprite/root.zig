@@ -9,20 +9,22 @@ pub const Direction = utils.Direction;
 pub const ActionData = utils.ActionData;
 pub const ActionRects = utils.ActionRects;
 
+const Position = struct { current: rl.Vector2 = rl.Vector2.zero(), target: rl.Vector2 = rl.Vector2.zero() };
 const Props = struct { name: []const u8, allocator: *std.mem.Allocator, io: *std.Io };
 pub const Sprite = struct {
+    action: Action = .Idle,
     name: utils.SpriteName,
     is_moving: bool = false,
-    allocator: *std.mem.Allocator,
-    texture: ?rl.Texture2D = null,
-    current_action: Action = .Idle,
+    position: Position = .{},
+    action_elapsed: f32 = 0.0,
+    is_sprinting: bool = false,
     direction: Direction = .Down,
+    texture: ?rl.Texture2D = null,
+    allocator: *std.mem.Allocator,
     run_data: utils.ActionData = .init(),
     idle_data: utils.ActionData = .init(),
     rest_data: utils.ActionData = .init(),
     walk_data: utils.ActionData = .init(),
-    position: rl.Vector2 = rl.Vector2.init(0, 0),
-    target_position: rl.Vector2 = rl.Vector2.init(0, 0),
 
     // base methods
     pub fn deinit(self: *Sprite) void {
@@ -62,7 +64,7 @@ pub const Sprite = struct {
     }
 
     fn drawHitbox(self: *Sprite) void {
-        const rects_data = self.getActionData(self.current_action).rects;
+        const rects_data = self.getActionData(self.action).rects;
         var rect = rects_data.hitbox orelse return;
         const origin = self.getOrigin();
         rect.x += origin.x;
@@ -72,7 +74,7 @@ pub const Sprite = struct {
 
     fn drawLowerRect(self: *Sprite) void {
         if (self.texture) |texture| {
-            const rects_data = self.getActionData(self.current_action).rects;
+            const rects_data = self.getActionData(self.action).rects;
             var rect = rects_data.lower orelse return;
             const frame = self.getActiveFrame();
             const origin = self.getOrigin();
@@ -85,7 +87,7 @@ pub const Sprite = struct {
 
     pub fn drawUpperRect(self: *Sprite) void {
         if (self.texture) |texture| {
-            const rects_data = self.getActionData(self.current_action).rects;
+            const rects_data = self.getActionData(self.action).rects;
             var rect = rects_data.upper orelse return;
             const frame = self.getActiveFrame();
             const origin = self.getOrigin();
@@ -94,66 +96,6 @@ pub const Sprite = struct {
             rect.y += origin.y;
             rl.drawTexturePro(texture, src, rect, rl.Vector2.zero(), 0.0, rl.Color.white);
         }
-    }
-
-    pub fn getActionData(self: *const Sprite, action: Action) ActionData {
-        return switch (action) {
-            .Run => self.run_data,
-            .Idle => self.idle_data,
-            .Rest => self.rest_data,
-            .Walk => self.walk_data,
-        };
-    }
-
-    fn getActiveFrame(self: *Sprite) rl.Rectangle {
-        const data = self.getActionData(self.current_action);
-        const rects_data = data.rects;
-        var core = rects_data.core orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
-        const frame_count = data.frame_count orelse 1;
-        const frame_duration = data.frame_duration orelse 0.12;
-        var frame_index: u8 = 0;
-        if (self.is_moving or self.current_action == .Rest) {
-            frame_index = @as(u8, @intFromFloat(@mod(rl.getTime() / frame_duration, @as(f32, @floatFromInt(frame_count)))));
-        }
-        const spritesheet_offset = data.spritesheet_offset orelse rl.Vector2.zero();
-        const direction_offset = self.getDirectionOffset();
-        core.x = spritesheet_offset.x + direction_offset.x + core.width * @as(f32, @floatFromInt(frame_index));
-        core.y = spritesheet_offset.y + direction_offset.y;
-        return core;
-    }
-
-    fn getDirectionOffset(self: *const Sprite) rl.Vector2 {
-        const fallback = rl.Vector2.zero();
-        const data = self.getActionData(self.current_action);
-        return switch (self.direction) {
-            .Up => data.directions.up orelse fallback,
-            .Down => data.directions.down orelse fallback,
-            .Left => data.directions.left orelse fallback,
-            .Right => data.directions.right orelse fallback,
-            .UpLeft => data.directions.up_left orelse data.directions.left orelse fallback,
-            .UpRight => data.directions.up_right orelse data.directions.right orelse fallback,
-            .DownLeft => data.directions.down_left orelse data.directions.left orelse fallback,
-            .DownRight => data.directions.down_right orelse data.directions.right orelse fallback,
-        };
-    }
-
-    pub fn getHitboxRect(self: *Sprite, target: ?rl.Vector2) rl.Rectangle {
-        const position = target orelse self.position;
-        const rects_data = self.getActionData(self.current_action).rects;
-        const hitbox = rects_data.hitbox orelse return .{ .x = position.x, .y = position.y, .width = 0, .height = 0 };
-        return rl.Rectangle{
-            .x = position.x - hitbox.width / 2,
-            .y = position.y - hitbox.height / 2,
-            .width = hitbox.width,
-            .height = hitbox.height,
-        };
-    }
-
-    fn getOrigin(self: *Sprite) rl.Vector2 {
-        const rects_data = self.getActionData(self.current_action).rects;
-        const hitbox = rects_data.hitbox orelse return self.position;
-        const hitbox_center_offset = rl.Vector2.init(hitbox.x + hitbox.width / 2, hitbox.y + hitbox.height / 2);
-        return rl.Vector2.init(self.position.x - hitbox_center_offset.x, self.position.y - hitbox_center_offset.y);
     }
 
     fn extractData(self: *Sprite, content: []const u8) void {
@@ -169,5 +111,80 @@ pub const Sprite = struct {
             utils.extractActionData(&self.walk_data, "walk", key, value);
             utils.extractActionData(&self.rest_data, "rest", key, value);
         }
+    }
+
+    pub fn getActionData(self: *const Sprite, action: ?Action) ActionData {
+        const _action = action orelse self.action;
+        return switch (_action) {
+            .Run => self.run_data,
+            .Idle => self.idle_data,
+            .Rest => self.rest_data,
+            .Walk => self.walk_data,
+        };
+    }
+
+    fn getActiveFrame(self: *Sprite) rl.Rectangle {
+        const data = self.getActionData(self.action);
+        const rects_data = data.rects;
+        var core = rects_data.core orelse return .{ .x = 0, .y = 0, .width = 0, .height = 0 };
+        const frame_count = data.frame_count orelse 1;
+        const frame_duration = data.frame_duration orelse 0.12;
+        var frame_index: u8 = 0;
+        if (self.is_moving or self.action == .Rest) {
+            frame_index = @as(u8, @intFromFloat(@mod(rl.getTime() / frame_duration, @as(f32, @floatFromInt(frame_count)))));
+        }
+        const spritesheet_offset = data.spritesheet_offset orelse rl.Vector2.zero();
+        const direction_offset = self.getDirectionOffset();
+        core.x = spritesheet_offset.x + direction_offset.x + core.width * @as(f32, @floatFromInt(frame_index));
+        core.y = spritesheet_offset.y + direction_offset.y;
+        return core;
+    }
+
+    fn getDirectionOffset(self: *const Sprite) rl.Vector2 {
+        const fallback = rl.Vector2.zero();
+        const data = self.getActionData(self.action);
+        return switch (self.direction) {
+            .Up => data.directions.up orelse fallback,
+            .Down => data.directions.down orelse fallback,
+            .Left => data.directions.left orelse fallback,
+            .Right => data.directions.right orelse fallback,
+            .UpLeft => data.directions.up_left orelse data.directions.left orelse fallback,
+            .UpRight => data.directions.up_right orelse data.directions.right orelse fallback,
+            .DownLeft => data.directions.down_left orelse data.directions.left orelse fallback,
+            .DownRight => data.directions.down_right orelse data.directions.right orelse fallback,
+        };
+    }
+
+    pub fn getHitboxRect(self: *Sprite, position: ?rl.Vector2) rl.Rectangle {
+        const _position = position orelse self.position.current;
+        const rects_data = self.getActionData(self.action).rects;
+        const hitbox = rects_data.hitbox orelse return .{ .x = _position.x, .y = _position.y, .width = 0, .height = 0 };
+        return rl.Rectangle{
+            .x = _position.x - hitbox.width / 2,
+            .y = _position.y - hitbox.height / 2,
+            .width = hitbox.width,
+            .height = hitbox.height,
+        };
+    }
+
+    fn getOrigin(self: *Sprite) rl.Vector2 {
+        const rects_data = self.getActionData(self.action).rects;
+        const position = self.position.current;
+        const hitbox = rects_data.hitbox orelse return position;
+        const hitbox_center_offset = rl.Vector2.init(hitbox.x + hitbox.width / 2, hitbox.y + hitbox.height / 2);
+        return rl.Vector2.init(position.x - hitbox_center_offset.x, position.y - hitbox_center_offset.y);
+    }
+
+    pub fn setAction(self: *Sprite, action: Action) void {
+        if (self.action == action) return;
+        if (action == .Rest) {
+            self.direction = switch (self.direction) {
+                .Left, .UpLeft, .DownLeft => .Left,
+                .Right, .UpRight, .DownRight => .Right,
+                .Up, .Down => if (rl.getRandomValue(0, 1) == 0) .Left else .Right,
+            };
+        }
+        self.action_elapsed = 0.0;
+        self.action = action;
     }
 };
