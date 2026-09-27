@@ -157,6 +157,15 @@ pub const Sprite = struct {
         };
     }
 
+    fn getHasCompletedAnimationCycles(self: *const Sprite, data: utils.ActionData) bool {
+        const cycle_counts = data.cycle_counts orelse return false;
+        if (cycle_counts[0] == 0) return false;
+        const frame_count = data.frame_count orelse 1;
+        const frame_duration = data.frame_duration orelse 0.12;
+        const cycle_duration = frame_duration * @as(f32, @floatFromInt(frame_count)) * @as(f32, @floatFromInt(cycle_counts[0]));
+        return cycle_duration > 0.0 and self.frame_elapsed >= cycle_duration;
+    }
+
     pub fn getHitboxRect(self: *Sprite, position: ?rl.Vector2) rl.Rectangle {
         const _position = position orelse self.position.current;
         const hitbox = self.getActionData(self.action).rects.hitbox orelse return .{ .x = _position.x, .y = _position.y, .width = 0, .height = 0 };
@@ -207,6 +216,7 @@ pub const Sprite = struct {
         self.is_moving = move.x != 0 or move.y != 0;
         self.is_sprinting = self.is_moving and keyboard.activeKeysInclude(&[_]Key{ .LeftShift, .RightShift }, .Or);
         if (self.is_moving) {
+            self.current_cycle = 0;
             self.action_elapsed = 0.0;
             self.setAction(if (self.is_sprinting) .Run else .Walk);
             const normalized = move.normalize();
@@ -221,14 +231,25 @@ pub const Sprite = struct {
             if (self.action == .Run) self.setAction(.Walk);
             if (self.action == .Walk) self.frame_elapsed = 0.0; // hold the standing frame so the next step starts the cycle over
             self.action_elapsed += delta_time;
+            var should_transition: bool = false;
             const action_data = self.getActionData(null);
-            if (action_data.timeout) |timeout| {
-                if (self.action_elapsed >= timeout) {
-                    switch (self.action) {
-                        .Walk => self.setAction(.Idle),
-                        .Idle => self.setAction(.Rest),
-                        else => {},
-                    }
+            if (self.action == .Idle and action_data.cycle_counts != null) {
+                should_transition = self.getHasCompletedAnimationCycles(action_data);
+            } else if (action_data.timeout) |timeout| should_transition = self.action_elapsed >= timeout;
+            if (should_transition) {
+                switch (self.action) {
+                    .Walk => {
+                        const idle_cycle_counts = self.idle_data.cycle_counts orelse .{ 0, 0 };
+                        if (idle_cycle_counts[1] > 0 and (self.current_cycle orelse 0) >= idle_cycle_counts[1]) {
+                            self.setAction(.Rest);
+                            self.current_cycle = 0;
+                        } else self.setAction(.Idle);
+                    },
+                    .Idle => {
+                        self.setAction(.Walk);
+                        self.current_cycle = (self.current_cycle orelse 0) + 1;
+                    },
+                    else => {},
                 }
             }
         }
