@@ -10,6 +10,7 @@ const Props = struct { name: []const u8, allocator: *std.mem.Allocator, io: *std
 pub const Sprite = struct {
     name: utils.SpriteName,
     is_moving: bool = false,
+    was_moving: bool = false,
     frame_elapsed: f32 = 0.0,
     action_elapsed: f32 = 0.0,
     is_sprinting: bool = false,
@@ -222,6 +223,7 @@ pub const Sprite = struct {
             const normalized = move.normalize();
             self.direction = utils.Direction.fromVector(normalized);
             const action_data = self.getActionData(null);
+            if (!self.was_moving) self.frame_elapsed = action_data.frame_duration orelse 0.12;
             const move_speed = action_data.speed orelse 0.0;
             self.position.target.x += normalized.x * move_speed * delta_time;
             self.position.target.y += normalized.y * move_speed * delta_time;
@@ -253,5 +255,6 @@ pub const Sprite = struct {
                 }
             }
         }
+        self.was_moving = self.is_moving;
     }
 };
