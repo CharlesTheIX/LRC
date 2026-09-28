@@ -34,7 +34,7 @@ pub const PlayScreen = struct {
             .font_size = props.font_size,
             .allocator = props.allocator,
             .map = Map.init(.{ .allocator = props.allocator }),
-            .player = Player.init(.{ .allocator = props.allocator, .sprite_name = "snorelax", .io = props.io }),
+            .player = Player.init(.{ .allocator = props.allocator, .sprite_name = "gengar", .io = props.io }),
         };
     }
 

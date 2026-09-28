@@ -75,6 +75,7 @@ pub const SpriteName = enum {
     Smeargle,
     Snorelax,
     Squirtle,
+    Gengar,
     Invalid,
 
     pub fn fromSlice(slice: []const u8) SpriteName {
@@ -99,6 +100,7 @@ pub const SpriteName = enum {
 
     pub fn toSlice(self: SpriteName) []const u8 {
         return switch (self) {
+            .Gengar => "gengar",
             .Pikachu => "pikachu",
             .Scyther => "scyther",
             .Smeargle => "smeargle",
